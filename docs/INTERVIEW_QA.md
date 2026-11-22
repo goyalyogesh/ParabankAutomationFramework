@@ -95,3 +95,78 @@ selectors. Page objects, steps and features stay unchanged.
 
 **Tweak: Run on Selenium Grid / cloud (BrowserStack) instead of local browsers.**
 A: Only `DriverFactory` changes: return `new RemoteWebDriver(gridUrl, options)` when `-Dgrid.url` is set.
+
+## Cucumber + TestNG and parallel execution
+
+**Q: How do Cucumber scenarios run in parallel with TestNG?**
+A: The runner extends `AbstractTestNGCucumberTests`; each scenario is a row of its `scenarios()` data provider.
+Overriding it with `@DataProvider(parallel = true)` runs the rows on a pool whose size is `dataproviderthreadcount`
+(we pass `-Dthreads`, default 3).
+
+**Tweak: Login scenarios must only start after all registrations finished.**
+A: Two `<test>` blocks in the suite XML run in order; parallelism happens only inside each block.
+
+**Tweak: You ran `-Dcucumber.filter.tags=@registration` and registration ran twice. Why?**
+A: That property overrides the tags of **every** runner in the JVM, so both runners picked the registration
+scenarios. We use separate suite XML files instead.
+
+**Q: How do step classes share data, and why not static fields?**
+A: PicoContainer injects one `TestContext` per scenario into every step/hook constructor. Static fields are shared
+by all threads, so parallel scenarios would overwrite each other's data.
+
+**Q: In what order do `@After` hooks run?**
+A: Highest `order` first. Screenshot (100) → Excel write-back (50) → quit browser (0). If the browser were quit
+first, there would be nothing to screenshot.
+
+**Tweak: The screenshot hook throws. Does the browser still close?**
+A: Yes, Cucumber runs all after-hooks even if one fails; the failure is reported on the scenario.
+
+## Test data, idempotency and the API
+
+**Q: What does "idempotent registration" mean here?**
+A: Running it twice gives the same end state. Before registering, the service checks the Excel credentials via
+REST login; if they work, the user is marked `EXISTING` and nothing is created. Verified: second run → 10 × EXISTING.
+
+**Q: Why write results back to Excel before the assertions?**
+A: If a later check fails, the generated username/password would otherwise be lost and the user orphaned on the site.
+
+**Q: Why call the REST API from a UI test?**
+A: Setup and verification are faster and more reliable through the API, and here the API is the truth source:
+the UI accepts any credentials, the API does not.
+
+**Tweak: Every registration failed with "This username already exists", even with unique names. How do you debug?**
+A: Don't trust the message. Reproduce outside the framework (curl), change one variable at a time: random 14-char
+name worked, our 21-char name didn't, 18 worked, 21 failed → hidden 20-char limit. Fix the generator and add the
+finding to the docs.
+
+**Tweak: Three parallel threads produced the same "unique" username.**
+A: Each scenario created its own generator with its own counter starting at 1. The counter must be shared
+(`static AtomicInteger`). We wrote a failing test first (300 instances → 1 distinct name), then fixed it.
+
+## Known defects
+
+**Q: The app has a bug that makes 3 tests fail. Why not change the assertions so they pass?**
+A: Then the suite hides a real bug. We keep the correct assertion, tag the cases `@knownDefect`, show them in their
+own report category, and exclude them from the pass-rate threshold and retries (Plan 04).
+
+**Tweak: The bug gets fixed. What happens?**
+A: Those tests start passing. Remove the tag (ideally linked to the bug ticket) so they count normally again.
+
+## Selenium 4 and Collections
+
+**Q: Where do you use relative locators, and what's the risk?**
+A: Last Name = "input below First Name". Layout changes can break it, so the page reads the field's value back and
+fails clearly if the wrong field was filled. For most fields, ids are still the better choice.
+
+**Q: How do you handle a new tab?**
+A: Remember the parent handle, `switchTo().newWindow(WindowType.TAB)`, check `getWindowHandles()` (a `Set`, since
+handles are unique) has 2 entries, close the child, switch back to the parent.
+
+**Q: Why `ConcurrentHashMap` for the user registry, not `HashMap` or `Collections.synchronizedMap`?**
+A: Several threads write at once. `HashMap` can lose entries or corrupt; `synchronizedMap` locks the whole map for
+every call; `ConcurrentHashMap` allows concurrent reads/writes with fine-grained locking. Our test registers 200
+users from a parallel stream and checks all 200 are there.
+
+**Tweak: You need the registered users in ID order for a report.**
+A: Stream the values and sort: `values().stream().sorted(Comparator.comparing(ParaBankUser::userId)).toList()`.
+A `ConcurrentHashMap` itself has no order.

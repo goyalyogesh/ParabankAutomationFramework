@@ -14,7 +14,7 @@ Each entry: what we decided, why, and what we rejected. Newest at the bottom.
 | D8 | Excel rows read as `List<Map<String,String>>` keyed by header | Columns can move without breaking code; easy to stream/filter | Index-based access (breaks when columns move) |
 | D9 | Excel writes: one JVM-wide lock + write to temp file then atomic rename | Parallel threads can't corrupt the workbook; a crash never leaves a half-written file | No locking (lost updates); one file per thread (hard to read) |
 | D10 | Config precedence: file < environment variable < `-D` property | Same code runs locally and in Jenkins; CI overrides without editing files | Hard-coded values; separate code paths for CI |
-| D11 | Unique usernames `qa_<timestamp>_<seq>` | Public shared site; names must not collide with other people or parallel runs | Fixed names (fail on second run) |
+| D11 | Unique usernames `qa_<yyMMddHHmmss>_<seq>` (19 chars; see D30) | Public shared site; names must not collide with other people or parallel runs | Fixed names (fail on second run) |
 | D12 | `@knownDefect` tag for UI login-with-any-credentials bug | Tests stay honest (they fail), but don't trigger retries or hide in the 85% math | Asserting buggy behaviour (hides the defect) |
 | D13 | Run 3 = headless Chrome now; Playwright engine in Phase 2 | Deliver core value first; abstraction (D7) makes the switch a config change | Playwright in Phase 1 (+20–25% effort) |
 | D14 | Cumulative pass % across runs | A test that passes on retry is counted as passed; matches common retry practice | Run-1-only pass % |
@@ -25,3 +25,13 @@ Each entry: what we decided, why, and what we rejected. Newest at the bottom.
 | D19 | Collections with a real job: `ConcurrentHashMap` user registry, `ArrayDeque` transfer queue, `Set` of account numbers, Streams for aggregation | Shows Collections knowledge through actual needs (thread-safe sharing, ordered processing, uniqueness) | Using them only in toy examples |
 | D20 | Selenium 4 features in real flows: relative locator (Register), Actions scroll/hover (Accounts Overview), `WindowType.TAB` + handle `Set` (footer link) | Demonstrates modern Selenium in context | Separate demo tests unrelated to banking |
 | D21 | Planning docs (spec, roadmap, plans) committed under `docs/superpowers/` | Reviewers see the process: requirements → design → plan → code | Keeping them local |
+| D22 | Cucumber 7.34.9, not 8.x | 8.1.0 was 6 days old; we only take versions at least 2 weeks old. 7.x is still maintained | 8.x (too new) |
+| D23 | Rest Assured 6.2.0 | Brings Groovy 5, which runs on the JDK 27 our Maven uses; 5.x's Groovy 4 is older | 5.5.x |
+| D24 | Own `ExtentCucumberPlugin` (~150 lines) instead of the third-party Extent adapter | We control screenshots, known-defect category and shared report; no version lock to an adapter | `extentreports-cucumber7-adapter` |
+| D25 | PicoContainer DI, one `TestContext` per scenario | Steps/hooks share state without statics; parallel scenarios stay isolated | Static fields (break in parallel); Spring (heavy) |
+| D26 | Two sequential `<test>` blocks (registration → login), parallel inside each | Login needs registered users; parallelism still within each phase | One block (login could run before registration) |
+| D27 | Scenario Outline examples hold only Excel keys (`U01`, `N03`) | Data lives in one place (Excel); feature files stay readable | Full data in Gherkin tables (duplicated with Excel) |
+| D28 | Idempotent registration: REST check first; write back to Excel immediately | Re-runs don't create duplicates; generated credentials are never lost even if a later check fails | Always register (new users every run); write at the end (lost on failure) |
+| D29 | Results of negative logins written in an `@After` hook | Recorded for passes and failures alike | Writing in the last step (skipped when an earlier step fails) |
+| D30 | Usernames kept ≤ 20 chars | ParaBank rejects longer names with a misleading "already exists" (found in the live run) | 21-char format (every registration failed) |
+| D31 | Rate-limit guard (`SiteGuard`) + default 3 threads | Cloudflare returns 429 / "error code: 1015" under bursts; fail fast with a clear message | Silent 20 s timeouts; more threads |
