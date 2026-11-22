@@ -236,3 +236,10 @@ Red (implementation stashed): `cannot find symbol: method hover`. Green: browser
 ### Task 2 — ExcelUtil sheet names and headers
 `sheetNames(file)` and `readHeaders(file, sheet)` (needed to upgrade an older working workbook with new sheets).
 Red: `cannot find symbol: method sheetNames`. Green 2/2; core default suite 39/39, installed.
+
+### Task 3 — Money models, ledger, ArrayDeque queue
+Records `Account`, `Transaction`, `TransferCase`, `TransferInstruction` (money = `BigDecimal`), enum `TransferType`.
+`TransferQueue` (ArrayDeque, FIFO; failure stops the queue, the rest stays in `remaining()`),
+`TransferLedger.expectedNetChange` (Streams `flatMap` + `groupingBy(TreeMap)` + `reducing(BigDecimal::add)`).
+Red: `cannot find symbol: class TransferInstruction`. Green: unit suite 14/14 (the ledger test also checks that all
+net changes add up to 0 — money is moved, never created).
