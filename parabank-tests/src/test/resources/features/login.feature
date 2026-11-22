@@ -34,6 +34,7 @@ Feature: Login
       | caseId |
       | N01    |
       | N02    |
+      | N07    |
 
     Examples: Input validation
       | caseId |
@@ -41,4 +42,3 @@ Feature: Login
       | N04    |
       | N05    |
       | N06    |
-      | N07    |

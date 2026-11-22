@@ -199,3 +199,27 @@ Probing with curl showed the real rule: **ParaBank rejects any username longer t
 message "This username already exists."** (18 chars → registered, 21 chars → "already exists"). Our format
 `qa_yyyyMMddHHmmss_NNN` is 21 chars. Fix: 2-digit year, `qa_yyMMddHHmmss_NNN` = 19 chars. Lesson for interviews:
 don't trust an error message, isolate one variable at a time (here: length vs. characters).
+
+**Third run — green.** `testng-registration.xml`, headless Chrome, 3 threads: 10/10 registered in 13 s
+(`qa_261121194737_001` … `_010`, customer ids 20870–21980). The Users sheet got Username, Password, Status, Acknowledgement,
+CustomerId, AccountNumber, RegisteredAt, Browser. **Second run:** 10/10 `EXISTING` (REST login succeeded), 0 registered again
+→ registration is idempotent.
+
+### Task 9 — Login, negative cases, Selenium 4 new tab (full suite, both browsers)
+`mvn -pl parabank-tests test -Dheadless=true` (Chrome) and `... -Dbrowser=firefox`:
+
+| Browser | Scenarios | Passed | Failed | Failed scenarios |
+|---|---|---|---|---|
+| Chrome (headless) | 28 | 25 | 3 | N01, N02, N07 — all `@knownDefect` |
+| Firefox (headless) | 28 | 25 | 3 | same |
+
+- **Finding:** N07 (300-character username and password) was planned as an "input validation" case because during the
+  spike the site showed an error for it. In the real run it **logged in**. Checked by hand with curl: the first try
+  logged in, the second showed "An internal error has occurred". So it is the same defect as N01/N02 (the UI accepts any
+  credentials) and moved to the `@knownDefect` examples.
+- LoginNegative sheet after the run: N01/N02/N07 `FAIL LOGGED_IN`; N03–N05 `PASS ERROR_SHOWN: Please enter a username
+  and password.`; N06 `PASS NO_PARABANK_RESPONSE` (Cloudflare blocks the SQL-like input before ParaBank sees it).
+- `target/reports/spark.html`: one report for both runners, 3 Base64 screenshots, category "Known defect".
+- `target/rerun/login.txt`: `classpath:features/login.feature:35:36:37` — input for the Plan 04 retry engine.
+- Maven reports BUILD FAILURE because of the 3 known defects; Plan 04's threshold logic excludes them.
+- `testdata/ParaBankData.xlsx` in git stays the blank template (no credentials); each machine fills its own copy.
