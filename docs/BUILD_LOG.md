@@ -317,3 +317,13 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
   "Run 1 done" lines from the Unit tests stage (timestamps of that stage). Real ones follow in the suite stage.
 - **Decision (user, 2026-11-22):** keep the 5 `@knownDefect` tags and watch more clean runs; remove them (and record
   the fix in guides 08/09) once they keep passing. The report flags them as "Known defects that passed" meanwhile.
+
+## Plan 06 — REST API suite
+- Core `OpenApiContract` (4 tests, core 64). `ParaBankApi` implements 22 operations; 5 admin operations excluded
+  and forbidden by `ApiCoverageTest` (unit suite 20).
+- ParaBank's DB had been reset: local customers re-registered 10/10.
+- API run 1: 7 defects as designed + 2 unexpected failures → two more real defects (loan approved with a down
+  payment above the balance; price history always 400). U01 left at −$14.50 → cleaned up, steps now refund/undo.
+- API run 3: 26 scenarios, 19 pass, 7 `@knownDefect` fail; main balance −$8.50 per run.
+- Full suite with the retry engine (headless Chrome): **59 scenarios, 52 passed, 7 failed = the 7 API defects;
+  100%, no retry.** The 5 UI known defects passed again (2nd clean run in a row) → still watched (user decision).

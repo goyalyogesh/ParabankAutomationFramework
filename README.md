@@ -30,6 +30,8 @@ Results: `parabank-tests/target/reports/spark.html` (Extent), `target/cucumber/`
 
 Expected today: 35 scenarios, 30 pass, 5 fail on purpose (`@knownDefect`): the UI logs in with any credentials
 (N01, N02, N07) and UI Bill Pay never debits the payer (B01, B02). See `docs/guide/08` and `09`.
+The REST API suite (guide 12) adds 26 scenarios: 19 pass, 7 are known API defects.
+`mvn -pl parabank-tests test -Dtest=ApiRunner` runs only the API scenarios (needs registered users).
 
 ### With the retry engine (the way CI runs it)
 ```bash

@@ -299,3 +299,40 @@ A: The orchestrator starts a new Maven per run and only forwards known propertie
 A: Our report lists it under "Known defects that passed". Verify it manually (here the Excel write-back showed a
 real debit, 515.50 → 485.50), confirm across a couple of runs, then remove the tag so the scenario counts again.
 Never auto-remove: a flaky pass would hide the defect.
+
+## REST API suite
+
+**Q: How do you test an API beyond status codes?**
+A: Three layers: functional (exact balance changes with BigDecimal, follow-up queries find the transaction),
+contract (every response validated against the OpenAPI spec), negative (bad input → 4xx with a clear message,
+no side effects).
+
+**Q: What is contract testing here?**
+A: A Rest Assured filter (Atlassian swagger-request-validator) checks each request and response against the spec.
+It found that `Transaction.date` is a number while the spec promises a date-time string. Consumers generated from
+the spec would break on that.
+
+**Tweak: Contract test vs. consumer-driven contract (Pact)?**
+A: Ours checks the provider against its *published* spec. Pact checks the provider against what *consumers*
+actually use. With one public API and no consumer teams, the spec is the contract.
+
+**Tweak: The spec changes on the server tomorrow. What happens?**
+A: Nothing until someone updates our local copy. That's deliberate: the update is a commit, reviewed, and
+`ApiCoverageTest` immediately shows new or removed operations.
+
+**Q: How do you know you covered the whole API?**
+A: `ApiCoverageTest` reads all operations from the spec and requires each to be implemented by the client or
+explicitly excluded with a reason. 22 implemented, 5 excluded admin operations.
+
+**Q: Your negative test proves a withdrawal is wrongly accepted. Doesn't that damage test data?**
+A: The step undoes it immediately (deposit back) before the assertion fails. Every money-changing scenario cleans
+up; a run changes the main balance by only −$8.50, and I can explain every cent.
+
+**Tweak: Why are some API scenarios known defects instead of failing the build?**
+A: They document real bugs with the *correct* expected behaviour. They don't count toward the pass rate, are
+never retried, and the report flags them if they ever pass (fixed). The build stays meaningful.
+
+**Q: Name an API bug you found.**
+A: Overdraft without limit ($100,000 from $275), negative withdrawals/transfers accepted, a loan approved with a
+down payment bigger than the balance, a 500 HTML page for an invalid account type, a price-history endpoint
+that never works, and a contract mismatch on dates.
