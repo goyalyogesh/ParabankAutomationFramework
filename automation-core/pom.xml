@@ -59,6 +59,11 @@
             <artifactId>rest-assured</artifactId>
             <optional>true</optional>
         </dependency>
+        <dependency>
+            <groupId>com.atlassian.oai</groupId>
+            <artifactId>swagger-request-validator-restassured</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <!-- Test-only logging implementation (consumers of the library choose their own) -->
         <dependency>

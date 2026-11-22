@@ -1,0 +1,47 @@
+openapi: 3.0.1
+info:
+  title: Mini bank (test fixture)
+  version: "1"
+servers:
+- url: /bank
+paths:
+  /accounts/{accountId}:
+    get:
+      operationId: getAccount
+      parameters:
+      - name: accountId
+        in: path
+        required: true
+        schema:
+          type: integer
+      responses:
+        default:
+          description: the account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+  /deposit:
+    post:
+      operationId: deposit
+      parameters:
+      - name: amount
+        in: query
+        required: true
+        schema:
+          type: number
+      responses:
+        default:
+          description: message
+components:
+  schemas:
+    Account:
+      type: object
+      properties:
+        id:
+          type: integer
+        balance:
+          type: number
+        opened:
+          type: string
+          format: date-time
