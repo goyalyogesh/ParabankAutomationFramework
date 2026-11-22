@@ -80,3 +80,16 @@ It has no Selenium import on purpose: the Playwright engine (Plan 07) will reuse
 
 **Commands and results**
 - Red: `cannot find symbol Locator`. Green: `Tests run: 7, Failures: 0`.
+
+### Task 7 — BrowserType, DriverFactory, DriverManager
+**What was built**
+- `BrowserType` enum (`CHROME`, `FIREFOX`) with a forgiving `from(" Chrome ")` and a clear error for `ie`.
+- `DriverFactory.create(type, headless)`: Chrome `--headless=new`, Firefox `-headless`, 1920×1080, password
+  pop-ups disabled, 60 s page-load timeout. Drivers come from Selenium Manager (no WebDriverManager).
+- `DriverManager`: `ThreadLocal<WebDriver>` with `start / get / isStarted / quit` (quit always calls `remove()`).
+
+**Commands and results**
+- Red: `cannot find symbol BrowserType`. Green: `DriverManagerTest` 4/4 (no browser needed).
+- Real browsers: `mvn -pl automation-core test -Dtest=DriverSmokeTest -Dgroups=browser -Dcore.excludedGroups=none`
+  → headless Chrome **and** Firefox opened a local page and read its title: 2/2 passed in ~16 s.
+- Default `mvn -pl automation-core test` → 32 tests, browser group correctly excluded.
