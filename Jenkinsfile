@@ -8,7 +8,7 @@ pipeline {
         string(name: 'THRESHOLD', defaultValue: '85', description: 'Pass rate (%) needed; below it, failed scenarios are retried')
         string(name: 'BROWSER_ROTATION', defaultValue: 'chrome,firefox,playwright:chrome', description: 'Browser for run 1, 2, 3 ([engine:]browser[-headless])')
         booleanParam(name: 'HEADLESS', defaultValue: true, description: 'No browser windows (CI default)')
-        booleanParam(name: 'DEMO_RETRY', defaultValue: false, description: 'Fail 6 login scenarios in runs 1 and 2 on purpose, so run 3 (Playwright) shows the retry')
+        booleanParam(name: 'DEMO_RETRY', defaultValue: false, description: 'Fail 6 login scenarios in runs 1 and 2 on purpose (threshold 100%), so run 3 (Playwright) shows the retry')
     }
 
     options {
@@ -46,10 +46,12 @@ pipeline {
                 sh 'mkdir -p "$(dirname "$TESTDATA_FILE")"'
                 script {
                     def demo = params.DEMO_RETRY ? '"-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2' : ''
+                    // Demo: 6 injected failures out of ~47 counted scenarios stay above 85%, so force the retry path
+                    def threshold = params.DEMO_RETRY ? '100' : params.THRESHOLD
                     sh """mvn -B -pl parabank-tests exec:java \
                         -Dheadless=${params.HEADLESS} \
                         -Dthreads=${params.THREADS} \
-                        -Dthreshold=${params.THRESHOLD} \
+                        -Dthreshold=${threshold} \
                         -Dbrowser.rotation=${params.BROWSER_ROTATION} \
                         -Dtestdata.file=\$TESTDATA_FILE \
                         -Dretry.passThrough=testdata.file \

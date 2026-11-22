@@ -79,10 +79,12 @@ and 2, so those scenarios fail on Selenium Chrome and Selenium Firefox and final
 
 ```
 mvn -pl parabank-tests exec:java -Dheadless=true \
-  "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2
+  "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2 -Dthreshold=100
 ```
 
-Jenkins `DEMO_RETRY=true` does exactly this.
+Add `-Dthreshold=100` locally: since the API suite was added, 6 injected failures out of about 47 counted scenarios
+still leave 87%, above the default 85%, and no retry would start (seen in Jenkins build 3). Jenkins `DEMO_RETRY=true`
+sets both the injection and the 100% threshold.
 
 ## Selenium vs Playwright (interview view)
 | | Selenium 4 | Playwright |
