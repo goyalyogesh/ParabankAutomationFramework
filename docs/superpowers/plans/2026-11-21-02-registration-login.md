@@ -2459,3 +2459,16 @@ Expected: 10 registration (EXISTING on re-run) + 10 login + 7 negative + 1 foote
 - [ ] **Step 3:** Add Q&A sections: Cucumber + TestNG parallel, DI, hooks order, idempotency, known defects, relative locators, window handles, ConcurrentHashMap, Rest Assured in UI tests.
 - [ ] **Step 4:** README "How to run" section; build log entries for Tasks 1–10.
 - [ ] **Step 5:** Commit `docs: Plan 02 guide chapters, decisions, interview Q&A, build log` and `git push origin master`.
+
+---
+
+## Execution notes (what changed while building, 2026-11-21)
+
+- **Username format** is `qa_yyMMddHHmmss_NNN` (19 chars), not `yyyyMMdd…` (21): ParaBank rejects names over 20
+  characters with "This username already exists". `TestDataGenerator`'s sequence is `static` (one per JVM).
+- **N07** (300-char credentials) logs in on the live site → moved to the `@knownDefect` examples.
+  Expected full run: 28 scenarios, 25 pass, 3 known-defect failures (N01, N02, N07).
+- **`SiteGuard`** added to `LoginPage`/`RegisterPage` to detect the Cloudflare rate limit (`error code: 1015`);
+  `LoginPage` now takes the timeout as a third constructor argument.
+- **Suites** `testng-registration.xml` and `testng-login.xml` added; don't use `-Dcucumber.filter.tags` to pick a flow.
+- Details and evidence: `docs/BUILD_LOG.md`, Plan 02 section.
