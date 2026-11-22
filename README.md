@@ -42,6 +42,10 @@ excluded from the pass rate and never retried. Reports: `reports/run-N/` (Extent
 and `reports/combined/index.html` (every scenario × run). Exit code non-zero if the threshold isn't met.
 See `docs/guide/10-retry-engine-and-reports.md`.
 
+### In Jenkins (local)
+`ci/jenkins/start-jenkins.sh` → http://127.0.0.1:8081 (user `admin`, password in `tools/jenkins/admin-password`),
+job **parabank-automation**. One-time download steps and design: `docs/guide/11-jenkins-pipeline.md`.
+
 ## Structure
 ```
 automation-core/   reusable library (config, Excel, data, driver, UI, API, reports, retry engine) → JFrog Artifactory

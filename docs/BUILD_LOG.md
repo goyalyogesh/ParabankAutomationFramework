@@ -301,3 +301,17 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
 - Try 3 (data-provider filter): run 2 = 6, only in login runner, but run 1 = 33 (ApiRunner lost `@DataProvider`).
 - Final: run 1 = 35 executed, 23 passed (76.7%); run 2 on Firefox = exactly 7 (6 injected + T01, a real Chrome
   failure), all passed → 100%, PASSED. T01 shows as "Passed on retry" in the combined report.
+
+## Plan 05 — Jenkins (JFrog later, by the user's choice)
+- Jenkins 2.580.2 LTS WAR (SHA-256 verified) + 71 plugins in `tools/jenkins/` (git-ignored). Configured as code
+  (`ci/jenkins/jenkins.yaml`), started by `ci/jenkins/start-jenkins.sh` on 127.0.0.1:8081. Anonymous → 403.
+- `retry.passThrough` added (TDD) so the CI workbook path reaches each run. Core tests 59 → 60 with the next item.
+- **Build 1** (normal): Build ✓, unit tests 77/77 published, suite run 1 = 35 executed, 3 failures from a
+  Cloudflare rate limit (SiteGuard waits weren't enough) → 90% ≥ 85% → SUCCESS, no retry. Reports published (200).
+- **Surprise:** 3 known defects passed (N01, B01, B02). Excel write-back proved they were real: B01 debited
+  515.50 → 485.50, N01 showed the error. ParaBank had apparently been reset/changed overnight.
+  → New core feature (TDD): "Known defects that passed" in console and combined report.
+- **Build 2** (`DEMO_RETRY=true`): run 1 = 35 in ~1 minute, 6 injected failures → 80% → run 2 on Firefox =
+  exactly 6, all passed → 100%, SUCCESS. **All 5 known defects passed** (no rate limit this time).
+- Note: unit tests of the retry engine print `[retry]` lines too, so the Jenkins console shows a few fake
+  "Run 1 done" lines from the Unit tests stage (timestamps of that stage). Real ones follow in the suite stage.

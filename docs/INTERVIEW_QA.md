@@ -266,3 +266,36 @@ report lists it as "Passed on retry", so it gets triaged rather than hidden.
 **Tweak: Why a new Maven process per run?**
 A: Clean state (static registries, ThreadLocal drivers, the report singleton), same as separate CI builds, and the
 orchestrator only depends on files the run leaves behind: Cucumber JSON.
+
+## Jenkins
+
+**Q: Walk me through your pipeline.**
+A: Declarative `Jenkinsfile`: Build (`mvn install -DskipTests`) → Unit tests (core + framework unit suite, JUnit
+results published) → ParaBank suite through the retry engine with parameters (threads, threshold, browser rotation,
+headless, retry demo) → post: archive `reports/**` and publish the combined report and the Extent report.
+The build fails if the pass rate is below the threshold (the orchestrator exits non-zero).
+
+**Q: How is Jenkins itself configured?**
+A: As code: `ci/jenkins/jenkins.yaml` (JCasC) defines security, the admin user, PATH and the job (via Job DSL).
+Starting from an empty `JENKINS_HOME` gives the same Jenkins every time, and every change is reviewed in git.
+
+**Tweak: Where's the admin password?**
+A: Generated on first start with `openssl rand`, saved with mode 600 in a git-ignored folder, passed to JCasC as an
+environment variable. In a team: Jenkins credentials store or a secrets manager, never in the repo.
+
+**Tweak: The Extent report is blank in Jenkins. Why?**
+A: Jenkins serves archived HTML with a strict Content-Security-Policy (no scripts, no inline styles) to protect
+users from malicious reports. We relaxed it only on this local, single-user Jenkins. On a shared server I'd keep
+the default and download the report or use a report server.
+
+**Tweak: Why one executor and no concurrent builds?**
+A: Two builds at once double the traffic to a rate-limited site and share the same test customers in Excel.
+
+**Tweak: Why the `retry.passThrough` property?**
+A: The orchestrator starts a new Maven per run and only forwards known properties. A project-specific one
+(`testdata.file`) had to reach the test JVM without hard-coding project names in the generic library.
+
+**Q: A known defect suddenly passes in CI. What do you do?**
+A: Our report lists it under "Known defects that passed". Verify it manually (here the Excel write-back showed a
+real debit, 515.50 → 485.50), confirm across a couple of runs, then remove the tag so the scenario counts again.
+Never auto-remove: a flaky pass would hide the defect.
