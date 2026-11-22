@@ -33,6 +33,29 @@ tag (D65). B02 passed 3 runs, then failed once in Jenkins build 4 with a *differ
 20 s, likely site slowness), then passed in build 6. It keeps `@knownDefect` in its own Examples table until it passes
 another clean run. A tag is removed on evidence, not on one lucky pass.
 
+## Find Transactions: find the transfer you just made (added 2026-11-22)
+Scenario F01 (customer U08, $33.33) opens a savings account, transfers into it, then opens **Find Transactions** four
+times (the form hides itself after each search, so each search starts from the menu):
+- **by amount** on the new account: exactly one row, "Funds Transfer Received", `$33.33` in Credit (the account is new,
+  so nothing else can match);
+- **by transaction id** on the main account: the id comes from the API (newest "Funds Transfer Sent" of that amount),
+  the row must be the debit;
+- **by date** and **by date range** around the booking date taken from the API, not from the local clock, so the test
+  does not break near midnight;
+- **malformed input** (data table): `abc` amount, `12a` id, `2026-11-22` and `11/22/2026` dates are refused with the
+  page's own messages.
+
+Page object `FindTransactionsPage`: one method per search, a `Row` record per result line, and `validationMessage()`
+that returns the message, or empty if the search reached the server. An empty result is a valid answer, so `rows()`
+does not wait for a row that may never come.
+
+Two defects found, both kept as `@knownDefect` scenarios:
+1. **Impossible date accepted.** The page only checks the shape `MM-DD-YYYY`; `02-30-2026` goes to the API, which
+   answers 200 with an empty list. The customer sees "no transactions" instead of "invalid date".
+2. **Dates shown one day early.** The API books dates as midnight UTC (epoch milliseconds); the page formats them with
+   the browser's time zone. In Toronto a deposit booked 2026-11-22 is shown as `11-21-2026`. The `Transaction` model now
+   reads `date` in UTC so the test compares against the real booking date.
+
 ## Finding: `/transfer` has no ownership check and no authentication
 The UI only lists *your own* accounts on Transfer Funds. The REST endpoint accepts any two account numbers from
 anyone, with no login. The chain scenario (C01–C03) relies on this and documents it. In a real bank this would be

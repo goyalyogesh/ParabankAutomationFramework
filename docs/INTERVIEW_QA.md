@@ -158,6 +158,18 @@ own report category, and exclude them from the pass-rate threshold and retries (
 **Tweak: The bug gets fixed. What happens?**
 A: Those tests start passing. Remove the tag (ideally linked to the bug ticket) so they count normally again.
 
+**Q: Tell me about a UI bug you found that the API tests could not see.**
+A: Find Transactions showed every transaction one day early. The API stores the booking date as midnight UTC; the
+page formats it with the browser's time zone, so in Toronto (UTC−5) midnight UTC becomes the previous evening. I
+caught it because the test compares the date on screen with the date from the API, not with my own clock. It only
+appears for users west of UTC, so a team testing from Europe would never see it. Same page: `02-30-2026` is accepted
+and silently returns "no transactions", because the browser only checks the format and the API doesn't validate the
+date. Both are tagged `@knownDefect` and reported, not hidden.
+
+**Tweak: How do you make date tests stable around midnight?**
+A: Take the expected date from the system under test (the API's booking date), never from `LocalDate.now()`, and
+search a range around it. Time zones are explicit in the code (`ZoneOffset.UTC`), never the machine default.
+
 ## Selenium 4 and Collections
 
 **Q: Where do you use relative locators, and what's the risk?**

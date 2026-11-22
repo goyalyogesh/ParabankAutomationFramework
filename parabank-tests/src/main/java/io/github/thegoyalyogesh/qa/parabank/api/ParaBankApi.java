@@ -16,7 +16,9 @@ import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -354,6 +356,7 @@ public final class ParaBankApi {
 
     private static Transaction toTransaction(Map<String, ?> json) {
         return new Transaction(number(json, "id"), number(json, "accountId"), String.valueOf(json.get("type")),
+                LocalDate.ofInstant(Instant.ofEpochMilli(number(json, "date")), ZoneOffset.UTC),
                 new BigDecimal(String.valueOf(json.get("amount"))), String.valueOf(json.get("description")));
     }
 

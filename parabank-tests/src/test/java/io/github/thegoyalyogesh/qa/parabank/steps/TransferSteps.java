@@ -1,5 +1,6 @@
 package io.github.thegoyalyogesh.qa.parabank.steps;
 
+import io.cucumber.datatable.DataTable;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
@@ -16,6 +17,9 @@ import io.github.thegoyalyogesh.qa.parabank.pages.AccountActivityPage;
 import io.github.thegoyalyogesh.qa.parabank.pages.AccountServicesMenu;
 import io.github.thegoyalyogesh.qa.parabank.pages.AccountServicesMenu.Link;
 import io.github.thegoyalyogesh.qa.parabank.pages.BillPayPage;
+import io.github.thegoyalyogesh.qa.parabank.pages.FindTransactionsPage;
+import io.github.thegoyalyogesh.qa.parabank.pages.FindTransactionsPage.Row;
+import io.github.thegoyalyogesh.qa.parabank.pages.FindTransactionsPage.Search;
 import io.github.thegoyalyogesh.qa.parabank.pages.LoginPage;
 import io.github.thegoyalyogesh.qa.parabank.pages.OpenAccountPage;
 import io.github.thegoyalyogesh.qa.parabank.pages.TransferFundsPage;
@@ -24,10 +28,13 @@ import io.github.thegoyalyogesh.qa.parabank.service.TransferQueue;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,6 +57,10 @@ public class TransferSteps {
     private BigDecimal toBefore;
     private String confirmation = "";
     private final Map<String, String> excelValues = new LinkedHashMap<>();
+
+    private List<Row> found = List.of();
+    private Transaction transactionUnderTest;
+    private Optional<String> findMessage = Optional.empty();
 
     private List<TransferInstruction> chain;
     private Map<Long, BigDecimal> chainBalancesBefore;
@@ -74,11 +85,7 @@ public class TransferSteps {
 
     @Given("the paying customer is logged in")
     public void payingCustomerLoggedIn() {
-        payer = ctx.registeredUser(transfer.fromUserId());
-        mainAccount = Long.parseLong(payer.accountNumber());
-        LoginPage.Outcome outcome = ctx.loginPage().open().login(payer.username(), payer.password());
-        assertThat(outcome).as("login of %s", payer.userId()).isEqualTo(LoginPage.Outcome.LOGGED_IN);
-        ctx.overviewPage().waitUntilLoaded();
+        customerLoggedIn(transfer.fromUserId());
     }
 
     // ---------- OWN: open account + transfer ----------
@@ -225,9 +232,91 @@ public class TransferSteps {
                 .isEqualByComparingTo(delta));
     }
 
+    // ---------- FIND TRANSACTIONS: the transfer just made must be found by every search ----------
+
+    @Given("customer {string} is logged in")
+    public void customerLoggedIn(String userId) {
+        payer = ctx.registeredUser(userId);
+        mainAccount = Long.parseLong(payer.accountNumber());
+        LoginPage.Outcome outcome = ctx.loginPage().open().login(payer.username(), payer.password());
+        assertThat(outcome).as("login of %s", userId).isEqualTo(LoginPage.Outcome.LOGGED_IN);
+        ctx.overviewPage().waitUntilLoaded();
+    }
+
+    @Then("searching the new account by amount finds exactly the transfer, as a credit")
+    public void findNewAccountByAmount() {
+        List<Row> rows = findTransactions(otherAccount).byAmount(transfer.amount());
+        scenario.log("By amount " + transfer.amount() + " on " + otherAccount + ": " + rows);
+        assertThat(rows).as("the new account has exactly one transaction of this amount").singleElement()
+                .satisfies(row -> {
+                    assertThat(row.description()).isEqualTo("Funds Transfer Received");
+                    assertThat(row.credit()).isEqualTo("$" + money(transfer.amount()));
+                    assertThat(row.debit()).isEmpty();
+                });
+    }
+
+    @Then("searching the main account by the transfer's transaction id finds it, as a debit")
+    public void findMainAccountById() {
+        Transaction sent = sentTransfer();
+        List<Row> rows = findTransactions(mainAccount).byId(sent.id());
+        scenario.log("By id " + sent.id() + ": " + rows);
+        assertThat(rows).singleElement().satisfies(row -> {
+            assertThat(row.description()).isEqualTo("Funds Transfer Sent");
+            assertThat(row.debit()).isEqualTo("$" + money(transfer.amount()));
+            assertThat(row.credit()).isEmpty();
+        });
+    }
+
+    @Then("searching the new account by its booking date, and by a date range around it, finds the transfer")
+    public void findNewAccountByDates() {
+        LocalDate booked = receivedTransfer().date();
+        scenario.log("Booking date from the API: " + booked);
+        assertThat(findTransactions(otherAccount).onDate(booked))
+                .as("search on %s", booked).anySatisfy(this::isReceivedTransfer);
+        assertThat(findTransactions(otherAccount).between(booked.minusDays(1), booked.plusDays(1)))
+                .as("search from %s to %s", booked.minusDays(1), booked.plusDays(1)).anySatisfy(this::isReceivedTransfer);
+    }
+
+    @Then("Find Transactions refuses malformed input with a message:")
+    public void findRejectsMalformedInput(DataTable cases) {
+        for (Map<String, String> c : cases.asMaps()) {
+            Search search = Search.valueOf(c.get("search"));
+            Optional<String> message = findTransactions(mainAccount).validationMessage(search, c.get("input"));
+            assertThat(message).as("%s with \"%s\"", search, c.get("input")).contains(c.get("message"));
+        }
+    }
+
+    @When("the customer searches the main account by the date {string}")
+    public void searchByRawDate(String date) {
+        findMessage = findTransactions(mainAccount).validationMessage(Search.BY_DATE, date);
+        scenario.log("Message shown: " + findMessage.orElse("(none - the search ran and returned results)"));
+    }
+
+    @Then("Find Transactions says {string}")
+    public void findSays(String message) {
+        assertThat(findMessage).as("message for an impossible date").contains(message);
+    }
+
+    @When("the customer deposits {string} through the API and looks that transaction up by its id")
+    public void depositAndLookUpById(String amount) {
+        ctx.api().deposit(mainAccount, new BigDecimal(amount));
+        Transaction latest = ctx.api().transactions(mainAccount).stream()
+                .max(Comparator.comparingLong(Transaction::id))
+                .orElseThrow(() -> new AssertionError("API shows no transaction on " + mainAccount + " after a deposit"));
+        transactionUnderTest = latest;
+        found = findTransactions(mainAccount).byId(latest.id());
+        scenario.log("API: " + latest + " | page: " + found);
+    }
+
+    @Then("the date shown is the booking date from the API")
+    public void dateShownIsBookingDate() {
+        assertThat(found).singleElement().extracting(Row::date)
+                .isEqualTo(FindTransactionsPage.DATE.format(transactionUnderTest.date()));
+    }
+
     // ---------- Excel write-back (runs for passed and failed scenarios) ----------
 
-    @After(value = "@ownTransfer or @billPay or @apiBillPay or @apiTransfer", order = 50)
+    @After(value = "@ownTransfer or @findTransfer or @billPay or @apiBillPay or @apiTransfer", order = 50)
     public void recordInExcel(Scenario finished) {
         String result = finished.isFailed() ? "FAIL" : "PASS";
         if (transfer != null) {
@@ -252,6 +341,31 @@ public class TransferSteps {
     }
 
     // ---------- helpers ----------
+
+    private FindTransactionsPage findTransactions(long account) {
+        menu().go(Link.FIND_TRANSACTIONS);
+        return new FindTransactionsPage(ctx.ui(), ctx.config().timeout()).selectAccount(account);
+    }
+
+    /** The debit this scenario created on the main account: newest "Funds Transfer Sent" of the amount. */
+    private Transaction sentTransfer() {
+        return ctx.api().transactionsByAmount(mainAccount, transfer.amount()).stream()
+                .filter(t -> t.type().equals("Debit") && t.description().equals("Funds Transfer Sent"))
+                .max(Comparator.comparingLong(Transaction::id))
+                .orElseThrow(() -> new AssertionError("API shows no transfer of " + transfer.amount() + " from " + mainAccount));
+    }
+
+    /** The credit on the new account (created by this scenario, so it is the only one of this amount). */
+    private Transaction receivedTransfer() {
+        return ctx.api().transactionsByAmount(otherAccount, transfer.amount()).stream()
+                .filter(t -> t.type().equals("Credit")).findFirst()
+                .orElseThrow(() -> new AssertionError("API shows no transfer of " + transfer.amount() + " into " + otherAccount));
+    }
+
+    private void isReceivedTransfer(Row row) {
+        assertThat(row.description()).isEqualTo("Funds Transfer Received");
+        assertThat(row.credit()).isEqualTo("$" + money(transfer.amount()));
+    }
 
     private AccountServicesMenu menu() {
         return new AccountServicesMenu(ctx.ui(), ctx.config().timeout());

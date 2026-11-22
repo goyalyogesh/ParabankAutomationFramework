@@ -15,7 +15,8 @@ public final class AccountServicesMenu {
         OPEN_NEW_ACCOUNT("Open New Account", "Open New Account"),
         ACCOUNTS_OVERVIEW("Accounts Overview", "Accounts Overview"),
         TRANSFER_FUNDS("Transfer Funds", "Transfer Funds"),
-        BILL_PAY("Bill Pay", "Bill Payment Service");
+        BILL_PAY("Bill Pay", "Bill Payment Service"),
+        FIND_TRANSACTIONS("Find Transactions", "Find Transactions");
 
         private final String text;
         private final String pageTitle;

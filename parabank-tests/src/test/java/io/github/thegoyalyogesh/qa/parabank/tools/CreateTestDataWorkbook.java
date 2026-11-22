@@ -73,7 +73,7 @@ public final class CreateTestDataWorkbook {
     }
 
     /**
-     * UI scenarios (OWN, B01, B02) run in parallel, so each uses its own customers. API scenarios (B03, CHAIN) run
+     * UI scenarios (OWN, F01, B01, B02) run in parallel, so each uses its own customers. API scenarios (B03, CHAIN) run
      * one at a time after the UI block, so they may reuse customers.
      */
     static List<Map<String, String>> transfers() {
@@ -81,6 +81,7 @@ public final class CreateTestDataWorkbook {
                 transfer("T01", "OWN", "U01", "", "25", "Move money into a new savings account"),
                 transfer("T02", "OWN", "U02", "", "40.50", "Move money into a new savings account"),
                 transfer("T03", "OWN", "U03", "", "10", "Move money into a new savings account"),
+                transfer("F01", "OWN", "U08", "", "33.33", "Transfer, then find it with Find Transactions"),
                 transfer("B01", "BILLPAY", "U04", "U05", "30", "Pay another customer through Bill Pay"),
                 transfer("B02", "BILLPAY", "U06", "U07", "12.75", "Pay another customer through Bill Pay"),
                 transfer("B03", "BILLPAY", "U04", "U05", "7.25", "Pay another customer through the REST Bill Pay endpoint"),

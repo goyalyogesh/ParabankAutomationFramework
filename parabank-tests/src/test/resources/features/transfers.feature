@@ -21,6 +21,42 @@ Feature: Money transfers
       | T02        |
       | T03        |
 
+  @findTransfer
+  Scenario Outline: <transferId> - customer finds the transfer with every Find Transactions search
+    Given transfer "<transferId>" from the Transfers sheet
+    And the paying customer is logged in
+    When the customer opens a new "SAVINGS" account funded from the main account
+    And the customer transfers the amount from the main account to the new account
+    Then searching the new account by amount finds exactly the transfer, as a credit
+    And searching the main account by the transfer's transaction id finds it, as a debit
+    And searching the new account by its booking date, and by a date range around it, finds the transfer
+    And Find Transactions refuses malformed input with a message:
+      | search        | input      | message                |
+      | BY_AMOUNT     | abc        | Invalid amount         |
+      | BY_ID         | 12a        | Invalid transaction ID |
+      | BY_DATE       | 2026-11-22 | Invalid date format    |
+      | BY_DATE_RANGE | 11/22/2026 | Invalid date format    |
+
+    Examples:
+      | transferId |
+      | F01        |
+
+  # The page checks only the shape MM-DD-YYYY, and the API answers 200 with an empty list for a date that does not
+  # exist, so the customer sees "no transactions" instead of an error (found 2026-11-22).
+  @findTransactions @knownDefect
+  Scenario: Find Transactions rejects a date that does not exist
+    Given customer "U09" is logged in
+    When the customer searches the main account by the date "02-30-2026"
+    Then Find Transactions says "Invalid date format"
+
+  # The API books dates as midnight UTC; the page formats them with the browser's local time zone, so anywhere west of
+  # UTC (e.g. Toronto) every transaction is shown one day early: API 2026-11-22, page 11-21-2026 (found 2026-11-22).
+  @findTransactions @knownDefect
+  Scenario: Find Transactions shows the booking date that the API returns
+    Given customer "U10" is logged in
+    When the customer deposits "1.11" through the API and looks that transaction up by its id
+    Then the date shown is the booking date from the API
+
   @billPay
   Scenario Outline: <transferId> - customer pays another customer through Bill Pay
     Given transfer "<transferId>" from the Transfers sheet

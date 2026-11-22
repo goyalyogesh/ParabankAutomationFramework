@@ -372,3 +372,11 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
   local workbook had been wiped by a site reset ("could not be verified"); RegistrationRunner re-registered all 10
   (10/10), then LoginRunner 16/18, the 2 failures being Cloudflare 1015 rate limits after a day of runs.
 - Core unit tests 85/85, ParaBank unit tests 20/20. Eclipse files (`.project`, `.classpath`, `.settings/`) git-ignored.
+
+## 2026-11-22 — Find Transactions scenario (backlog item 1)
+- New: `FindTransactionsPage`, menu link, `Transaction.date` (UTC), Transfers row F01 (U08, 33.33), 3 scenarios in
+  `transfers.feature`. Remaining ideas parked in `docs/BACKLOG.md`.
+- Live: F01 passed (amount, id, date, date range, 4 malformed inputs).
+- Two defects found and tagged `@knownDefect`: `02-30-2026` accepted (API 200 + empty list); dates shown one day early
+  west of UTC (API 2026-11-22, page 11-21-2026). First version of the date scenario failed for a test reason (a new
+  customer has no transactions); it now makes a $1.11 deposit through the API first.

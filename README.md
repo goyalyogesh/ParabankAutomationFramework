@@ -11,7 +11,8 @@ in the docs, so the whole framework can be walked through in an interview.
   results. Idempotent: customers who can still log in are skipped.
 - **Login** positive (10 customers) and negative (7 cases from Excel), plus Selenium 4 features (relative locator,
   Actions API, new tab / window handles).
-- **Transfers**: between own accounts, customer A → B through Bill Pay and REST, and a chain of transfers. Every UI
+- **Transfers**: between own accounts, customer A → B through Bill Pay and REST, and a chain of transfers. The
+  transfer is then found again with Find Transactions (by amount, id, date and date range). Every UI
   action is cross-checked through the REST API (hybrid tests).
 - **REST API suite**: 22 operations, each response validated against ParaBank's OpenAPI spec, plus functional and
   negative tests. It found 7 real API defects.
@@ -74,9 +75,11 @@ Results:
 - `target/screenshots/` (failures);
 - `testdata/ParaBankData.xlsx` (credentials and results written back; created from `ParaBankData-template.xlsx`).
 
-**Expected today:** a full run executes 59 scenarios. All pass except those tagged `@knownDefect`:
+**Expected today:** a full run executes 62 scenarios. All pass except those tagged `@knownDefect`:
 - the 7 API defects (guide 12), which fail on purpose;
-- B02 (UI Bill Pay), which is still under watch.
+- B02 (UI Bill Pay), which is still under watch;
+- 2 Find Transactions defects found on 2026-11-22: an impossible date (02-30-2026) is accepted, and every date is
+  shown one day early west of UTC (guide 09).
 
 Known defects are reported separately and never count against the pass rate. ParaBank fixed the UI login and Bill
 Pay defects by 2026-11-22. The tags on N01, N02, N07 and B01 were removed after 4 clean runs (D65).
@@ -154,3 +157,4 @@ Requirement-by-requirement status: [REQUIREMENTS.md](REQUIREMENTS.md), section 8
 - Why things are the way they are: [docs/DECISIONS.md](docs/DECISIONS.md) (D1–D67)
 - Interview preparation: [docs/INTERVIEW_QA.md](docs/INTERVIEW_QA.md), including "where each concept is used"
 - What happened while building it: [docs/BUILD_LOG.md](docs/BUILD_LOG.md)
+- Parked work (more scenarios, Sauce Labs, JFrog): [docs/BACKLOG.md](docs/BACKLOG.md)
