@@ -3,6 +3,8 @@ package io.github.thegoyalyogesh.qa.core.retry;
 import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.Pickle;
 import io.cucumber.testng.PickleWrapper;
+import org.testng.ITestContext;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 
 import java.util.Arrays;
@@ -18,6 +20,12 @@ import java.util.Set;
  * TestNG fails with "requires a @DataProvider named: scenarios" for runners that don't override it themselves.
  */
 public abstract class RetryAwareCucumberTests extends AbstractTestNGCucumberTests {
+
+    /** Same number of parallel scenarios whether Maven, Eclipse or IntelliJ starts TestNG ({@link ScenarioThreads}). */
+    @BeforeClass(alwaysRun = true)
+    public void limitParallelScenarios(ITestContext context) {
+        ScenarioThreads.apply(context);
+    }
 
     @Override
     @DataProvider

@@ -112,7 +112,8 @@ public final class RetryOrchestrator {
                 .toAbsolutePath().normalize();
         List<String> passThrough = passThroughArguments(System.getProperties());
         MavenRunExecutor executor = new MavenRunExecutor(moduleDir, reportsDir,
-                System.getProperty("maven.cmd", "mvn"), passThrough,
+                MavenRunExecutor.mavenCommand(System.getProperty("maven.cmd"), System.getProperty("maven.home"),
+                        System.getProperty("os.name", "").startsWith("Windows")), passThrough,
                 demoArguments(System.getProperty("retry.demo.injectFailure"), Integer.getInteger("retry.demo.injectRuns", 1)));
         executor.cleanReports();
         RetryOrchestrator orchestrator = new RetryOrchestrator(policy, rotation, KNOWN_DEFECT_TAG, executor);

@@ -2,6 +2,7 @@ package io.github.thegoyalyogesh.qa.core.retry;
 
 import org.testng.annotations.Test;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
@@ -39,5 +40,19 @@ public class MavenRunExecutorTest {
         assertThat(RetryOrchestrator.demoArguments("U0[1-6]", 1).apply(2)).isEmpty();
         assertThat(RetryOrchestrator.demoArguments("U0[1-6]", 2).apply(2)).containsExactly("-Dinject.failure=U0[1-6]");
         assertThat(RetryOrchestrator.demoArguments("U0[1-6]", 2).apply(3)).isEmpty();
+    }
+
+    @Test
+    public void mavenCommandPrefersExplicitValueThenTheRunningMavenThenPath() throws Exception {
+        Path home = Files.createTempDirectory("maven-home");
+        Files.createDirectories(home.resolve("bin"));
+        Path mvn = Files.createFile(home.resolve("bin/mvn"));
+        Path mvnCmd = Files.createFile(home.resolve("bin/mvn.cmd"));
+
+        assertThat(MavenRunExecutor.mavenCommand("/custom/mvn", home.toString(), false)).isEqualTo("/custom/mvn");
+        assertThat(MavenRunExecutor.mavenCommand(null, home.toString(), false)).isEqualTo(mvn.toString());
+        assertThat(MavenRunExecutor.mavenCommand(null, home.toString(), true)).isEqualTo(mvnCmd.toString());
+        assertThat(MavenRunExecutor.mavenCommand(null, null, false)).isEqualTo("mvn");
+        assertThat(MavenRunExecutor.mavenCommand(" ", "/no/such/maven", false)).isEqualTo("mvn");
     }
 }

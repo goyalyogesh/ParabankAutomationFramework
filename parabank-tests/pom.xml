@@ -106,6 +106,7 @@
                     </properties>
                     <systemPropertyVariables>
                         <report.title>${report.title}</report.title>
+                        <threads>${threads}</threads>
                     </systemPropertyVariables>
                 </configuration>
             </plugin>

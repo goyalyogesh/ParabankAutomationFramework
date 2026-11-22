@@ -362,3 +362,13 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
   - Login on Playwright: first run 15/18. All 3 failures were Cloudflare error 1015 (rate limit after a day of runs),
     detected and named by the framework. Re-run with `-Dthreads=2`: 18/18.
 - The clone was deleted afterwards.
+
+## 2026-11-22 — Running from Eclipse (guide 14)
+- Found while checking the Eclipse route: TestNG started by an IDE ignores `-Dthreads` (only Surefire passes it), so
+  it would run 10 scenarios in parallel. Added `ScenarioThreads` (D66), applied in `RetryAwareCucumberTests`; unit test
+  runs TestNG directly and proves at most 2 rows run at once with `-Dthreads=2`.
+- Retry engine now finds Maven through `maven.home` (D67), with a unit test.
+- Eclipse-style check (plain `org.testng.TestNG`, no Maven): LoginRunner used exactly 2 threads. The customers in the
+  local workbook had been wiped by a site reset ("could not be verified"); RegistrationRunner re-registered all 10
+  (10/10), then LoginRunner 16/18, the 2 failures being Cloudflare 1015 rate limits after a day of runs.
+- Core unit tests 85/85, ParaBank unit tests 20/20. Eclipse files (`.project`, `.classpath`, `.settings/`) git-ignored.

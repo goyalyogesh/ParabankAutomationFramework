@@ -47,6 +47,9 @@ Not needed: drivers (Selenium Manager downloads them), Playwright browsers (it u
 password or account. JFrog is the only part that will need credentials, kept in `~/.m2/settings.xml`.
 On Windows, the Maven commands work as they are; run the Jenkins start script from Git Bash or WSL.
 
+**In Eclipse:** File → Import → Maven → Existing Maven Projects → this folder. Install "TestNG for Eclipse" from
+the Marketplace, then right-click `parabank-tests/testng-parabank.xml` → Run As → TestNG Suite. Details: guide 14.
+
 ## Build and unit tests
 ```bash
 mvn -q install -DskipTests                     # build + install the core library (needed once)
@@ -146,7 +149,8 @@ Requirement-by-requirement status: [REQUIREMENTS.md](REQUIREMENTS.md), section 8
   [10 Retry engine](docs/guide/10-retry-engine-and-reports.md) ·
   [11 Jenkins](docs/guide/11-jenkins-pipeline.md) ·
   [12 API suite](docs/guide/12-api-suite-openapi.md) ·
-  [13 Playwright](docs/guide/13-playwright-engine.md)
-- Why things are the way they are: [docs/DECISIONS.md](docs/DECISIONS.md) (D1–D65)
+  [13 Playwright](docs/guide/13-playwright-engine.md) ·
+  [14 Eclipse](docs/guide/14-running-in-eclipse.md)
+- Why things are the way they are: [docs/DECISIONS.md](docs/DECISIONS.md) (D1–D67)
 - Interview preparation: [docs/INTERVIEW_QA.md](docs/INTERVIEW_QA.md), including "where each concept is used"
 - What happened while building it: [docs/BUILD_LOG.md](docs/BUILD_LOG.md)

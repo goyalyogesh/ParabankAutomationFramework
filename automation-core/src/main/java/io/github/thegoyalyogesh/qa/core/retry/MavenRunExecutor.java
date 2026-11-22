@@ -67,6 +67,24 @@ public final class MavenRunExecutor implements RunExecutor {
         return CucumberJsonReader.readDirectory(runDir.resolve("cucumber"));
     }
 
+    /**
+     * Which Maven to start: {@code -Dmaven.cmd} if given; otherwise the {@code bin/mvn} of the Maven that is running
+     * this JVM ({@code maven.home}, set by {@code mvn exec:java}); otherwise plain {@code mvn} from the PATH. The middle
+     * step matters in an IDE started from the macOS Dock, whose PATH does not include Homebrew.
+     */
+    static String mavenCommand(String explicit, String mavenHome, boolean windows) {
+        if (explicit != null && !explicit.isBlank()) {
+            return explicit.trim();
+        }
+        if (mavenHome != null && !mavenHome.isBlank()) {
+            Path candidate = Path.of(mavenHome, "bin", windows ? "mvn.cmd" : "mvn");
+            if (Files.isRegularFile(candidate)) {
+                return candidate.toString();
+            }
+        }
+        return "mvn";
+    }
+
     List<String> command(int run, BrowserChoice browser, List<ScenarioResult> onlyScenarios) {
         List<String> command = new ArrayList<>(List.of(mavenCommand, "-B", "test",
                 "-Dui.engine=" + browser.engine(),
