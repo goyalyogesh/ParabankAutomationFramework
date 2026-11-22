@@ -25,3 +25,4 @@ testdata/ParaBankData.xlsx
 # local Jenkins (war, home, plugins, admin password)
 tools/jenkins/
 tools/playwright/
+tools/fresh-clone/

@@ -27,6 +27,26 @@ in the docs, so the whole framework can be walked through in an interview.
 - Google Chrome and Mozilla Firefox. Selenium Manager downloads the drivers. Playwright uses the installed Chrome, so
   it downloads nothing; for Playwright Firefox it downloads its own build into `tools/playwright/` (git-ignored).
 
+## On a new computer (after `git clone`)
+Nothing is machine-specific in git. Steps:
+1. Install JDK 21+, Maven 3.9+, Chrome and Firefox.
+2. Build once from the repo root, because `parabank-tests` needs `automation-core` in your local Maven repository:
+   ```bash
+   git clone https://github.com/goyalyogesh/ParabankAutomationFramework.git
+   cd ParabankAutomationFramework
+   mvn -q install -DskipTests
+   ```
+3. Run the tests (commands below). The first run creates `testdata/ParaBankData.xlsx` from the template and
+   registers 10 new customers. Login and transfer suites reuse them, so on a fresh clone run the full suite (or the
+   registration suite) first.
+4. Optional: Jenkins. It is not in git (only its configuration is). Download `jenkins.war` and the plugins once into
+   `tools/jenkins/` (guide 11, first block), then run `ci/jenkins/start-jenkins.sh`. It finds Maven on your PATH,
+   creates its own admin password, and builds from your local clone.
+
+Not needed: drivers (Selenium Manager downloads them), Playwright browsers (it uses your installed Chrome), any
+password or account. JFrog is the only part that will need credentials, kept in `~/.m2/settings.xml`.
+On Windows, the Maven commands work as they are; run the Jenkins start script from Git Bash or WSL.
+
 ## Build and unit tests
 ```bash
 mvn -q install -DskipTests                     # build + install the core library (needed once)

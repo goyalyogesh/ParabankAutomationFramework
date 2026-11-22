@@ -16,8 +16,8 @@ jenkins:
   globalNodeProperties:
     - envVars:
         env:
-          - key: "PATH+HOMEBREW"          # Maven, browsers' drivers via Selenium Manager
-            value: "/opt/homebrew/bin"
+          - key: "PATH+TOOLS"             # folder holding mvn; set by start-jenkins.sh, works on any machine
+            value: "${TOOLS_PATH:-/opt/homebrew/bin}"
 unclassified:
   location:
     url: "http://127.0.0.1:8081/"

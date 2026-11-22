@@ -13,6 +13,9 @@ if [[ ! -f "$DIR/admin-password" ]]; then
 fi
 export JENKINS_ADMIN_PASSWORD="$(cat "$DIR/admin-password")"
 export JENKINS_HOME="$DIR/home"
+# Folder that holds mvn on THIS machine (Apple Silicon: /opt/homebrew/bin, Intel Mac: /usr/local/bin, Linux: /usr/bin...)
+MVN="$(command -v mvn)" || { echo "mvn is not on PATH - install Maven first" >&2; exit 1; }
+export TOOLS_PATH="${TOOLS_PATH:-$(dirname "$MVN")}"
 export CASC_JENKINS_CONFIG="$ROOT/ci/jenkins/jenkins.yaml"
 export REPO_URL="${REPO_URL:-file://$ROOT}"   # local repo by default; REPO_URL=https://github.com/... for the remote
 
