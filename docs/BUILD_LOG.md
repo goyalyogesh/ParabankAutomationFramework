@@ -70,3 +70,13 @@ characters), `ssn()`, `phone()`, `zipCode()`. `Clock` and `Random` are injected 
 **Commands and results**
 - Red: `cannot find symbol TestDataGenerator`. Green: `Tests run: 4, Failures: 0`, including 500 usernames
   generated in a parallel stream with the same frozen clock, all unique.
+
+### Task 6 — Locator
+**What was built**
+`core/ui/Locator.java` (a Java `record`): parses `strategy=value` strings such as `id=customer.firstName`,
+`name=username`, `css=#rightPanel h1`, `xpath=//input[@value='Log In']`, `link=Log Out`. Only the first `=`
+splits, so XPath values with `=` work. Clear errors for missing/unknown strategy or empty value.
+It has no Selenium import on purpose: the Playwright engine (Plan 07) will reuse it.
+
+**Commands and results**
+- Red: `cannot find symbol Locator`. Green: `Tests run: 7, Failures: 0`.
