@@ -62,3 +62,36 @@ values. Production uses the system clock and `SecureRandom`.
 
 **Tweak: Two Jenkins agents start a build in the same second.**
 A: Add the Jenkins `BUILD_NUMBER` or hostname to the prefix (`qa_b123`), read through `ConfigReader`.
+
+## Browser & driver management
+
+**Q: How do you run tests in parallel without browsers interfering?**
+A: `DriverManager` stores the driver in a `ThreadLocal`, so each thread has its own browser. Start in a
+before-hook, `quit()` + `ThreadLocal.remove()` in an after-hook.
+
+**Tweak: You forgot `ThreadLocal.remove()`. What happens?**
+A: Thread pools reuse threads; the next test on that thread may get a dead/old driver ("session not
+found") and memory leaks over long runs.
+
+**Q: How are browser drivers (chromedriver/geckodriver) managed?**
+A: Selenium Manager, built into Selenium 4.6+, detects the installed browser version and downloads the
+matching driver. No WebDriverManager library or manual downloads.
+
+**Tweak: Jenkins agent has no internet, so Selenium Manager can't download drivers.**
+A: Pre-install drivers on the agent and point to them with `-Dwebdriver.chrome.driver=/path`, or use a
+Selenium Grid / Docker images that bundle browsers and drivers.
+
+**Q: Implicit vs explicit waits — what do you use and why?**
+A: Explicit only (`WebDriverWait` with conditions per action). Mixing both can multiply wait times and
+makes timeouts unpredictable. `Thread.sleep` is never used.
+
+**Q: Why do your page objects use a `UiDriver` interface instead of `WebDriver` / `@FindBy`?**
+A: Dependency inversion: pages depend on an abstraction. The same pages can run on Selenium today and
+Playwright later by switching the implementation in config — no page rewrites.
+
+**Tweak: The company says "we are moving to Playwright". What is the effort?**
+A: Implement `PlaywrightUiDriver` (one class, ~12 methods) and map `Locator` strategies to Playwright
+selectors. Page objects, steps and features stay unchanged.
+
+**Tweak: Run on Selenium Grid / cloud (BrowserStack) instead of local browsers.**
+A: Only `DriverFactory` changes: return `new RemoteWebDriver(gridUrl, options)` when `-Dgrid.url` is set.

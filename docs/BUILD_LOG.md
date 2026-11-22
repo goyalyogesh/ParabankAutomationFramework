@@ -93,3 +93,25 @@ It has no Selenium import on purpose: the Playwright engine (Plan 07) will reuse
 - Real browsers: `mvn -pl automation-core test -Dtest=DriverSmokeTest -Dgroups=browser -Dcore.excludedGroups=none`
   → headless Chrome **and** Firefox opened a local page and read its title: 2/2 passed in ~16 s.
 - Default `mvn -pl automation-core test` → 32 tests, browser group correctly excluded.
+
+### Task 8 — UiDriver and SeleniumUiDriver
+**What was built**
+- `UiDriver` interface: `open, click, type, text, isVisible, selectByVisibleText, selectedOption, options,
+  waitForText, title, currentUrl, screenshot`. Page objects (Plan 02) will only see this interface.
+- `SeleniumUiDriver`: every action uses an explicit `WebDriverWait` condition (clickable / visible / "select
+  has options"). No implicit waits, no `Thread.sleep`. `toBy(Locator)` maps our locator strings to Selenium `By`.
+
+**Commands and results**
+- Red: `cannot find symbol SeleniumUiDriver`. Green: mapping test 1/1.
+- Real browser (headless Chrome) on a local test page whose dropdown is filled by JavaScript after 0.7 s:
+  5/5 passed — typing clears old text, waits for late options, `isVisible` never throws, screenshot is a PNG.
+
+### Plan 01 — final verification
+| Check | Result |
+|---|---|
+| `mvn -pl automation-core test -Dcore.excludedGroups=none` (unit + real browsers) | **40 tests, 0 failures** |
+| `mvn -pl automation-core test` (default, no browser) | 32 tests, 0 failures |
+| `mvn clean install -DskipTests` | `automation-core-1.0.0-SNAPSHOT.jar`, `-sources.jar`, `-javadoc.jar`, `.pom` installed in `~/.m2` |
+| Commits | 8, all authored by Yogesh Goyal |
+
+**Next:** Plan 02 (registration & login with Cucumber + TestNG, Excel write-back, Collections, Selenium 4 features).
