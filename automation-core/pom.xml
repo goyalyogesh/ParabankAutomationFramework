@@ -33,6 +33,22 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
         </dependency>
+        <!-- Optional: only projects that use the Cucumber/Extent/API helpers need these on their classpath -->
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>com.aventstack</groupId>
+            <artifactId>extentreports</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <optional>true</optional>
+        </dependency>
 
         <!-- Test-only logging implementation (consumers of the library choose their own) -->
         <dependency>

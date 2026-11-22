@@ -110,8 +110,18 @@ It has no Selenium import on purpose: the Playwright engine (Plan 07) will reuse
 | Check | Result |
 |---|---|
 | `mvn -pl automation-core test -Dcore.excludedGroups=none` (unit + real browsers) | **40 tests, 0 failures** |
-| `mvn -pl automation-core test` (default, no browser) | 32 tests, 0 failures |
+| `mvn -pl automation-core test` (default, no browser) | 33 tests, 0 failures (32 after Task 7 + the mapping test from Task 8; corrected in Plan 02) |
 | `mvn clean install -DskipTests` | `automation-core-1.0.0-SNAPSHOT.jar`, `-sources.jar`, `-javadoc.jar`, `.pom` installed in `~/.m2` |
 | Commits | 8, all authored by Yogesh Goyal |
 
 **Next:** Plan 02 (registration & login with Cucumber + TestNG, Excel write-back, Collections, Selenium 4 features).
+
+---
+
+## Plan 02 — Registration & login (2026-11-21)
+
+### Task 1 — Dependency versions
+Parent POM pins Cucumber **7.34.9** (newest 7.x; 8.1.0 was released 6 days ago, too new), Rest Assured **6.2.0**
+(brings Groovy 5, which supports the JDK 27 that Maven runs on here) and ExtentReports **5.1.2**.
+`automation-core` declares them as `<optional>` so projects that don't use the Cucumber/Extent/API helpers don't inherit them.
+Result: core build green, 33 tests.

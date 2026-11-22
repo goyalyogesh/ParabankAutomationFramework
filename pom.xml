@@ -25,6 +25,9 @@
         <assertj.version>3.26.3</assertj.version>
         <log4j.version>2.26.1</log4j.version>
         <surefire.version>3.5.6</surefire.version>
+        <cucumber.version>7.34.9</cucumber.version>
+        <restassured.version>6.2.0</restassured.version>
+        <extent.version>5.1.2</extent.version>
 
         <!-- JFrog Artifactory (real URL set in Plan 05; credentials live only in ~/.m2/settings.xml) -->
         <artifactory.url>https://CHANGE-ME.jfrog.io/artifactory</artifactory.url>
@@ -67,6 +70,31 @@
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-slf4j2-impl</artifactId>
                 <version>${log4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-java</artifactId>
+                <version>${cucumber.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-testng</artifactId>
+                <version>${cucumber.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.cucumber</groupId>
+                <artifactId>cucumber-picocontainer</artifactId>
+                <version>${cucumber.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.rest-assured</groupId>
+                <artifactId>rest-assured</artifactId>
+                <version>${restassured.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aventstack</groupId>
+                <artifactId>extentreports</artifactId>
+                <version>${extent.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
