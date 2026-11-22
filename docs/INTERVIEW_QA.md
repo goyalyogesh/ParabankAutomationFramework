@@ -239,7 +239,7 @@ A: It slows every run and still fails when the limit is hit. Back-off only when 
 **Q: How does your retry work?**
 A: Run 1 executes everything on Chrome. The orchestrator reads Cucumber's JSON, computes the cumulative pass rate
 without `@knownDefect` scenarios, and if it's below 85% re-runs only the scenarios that haven't passed yet on the
-next browser (Firefox, then headless Chrome), at most 3 runs. Each run is a separate `mvn test` with its own reports;
+next browser (Firefox, then Playwright on Chrome), at most 3 runs. Each run is a separate `mvn test` with its own reports;
 a combined HTML page shows every scenario in every run.
 
 **Tweak: Why not Surefire's `rerunFailingTestsCount` or TestNG's `IRetryAnalyzer`?**
@@ -372,3 +372,176 @@ the choice.
 **Q: Is Playwright thread-safe?**
 A: No. Each TestNG thread gets its own Playwright, browser, context and page through a `ThreadLocal` in `UiSession`.
 They are closed in reverse order in `finally` blocks.
+
+## Where each concept is used in this project (concrete answers)
+
+Use these when an interviewer asks "where did you use X?". Each answer names the class, says why that choice, and
+what the alternative would have cost. Paths are shortened: `core/` = `automation-core/src/main/java/.../qa/core/`,
+`pb/` = `parabank-tests/src/{main,test}/java/.../qa/parabank/`.
+
+### Collections
+
+**Q: Where did you use `ConcurrentHashMap`, and why not `HashMap`?**
+A: Two places:
+1. `pb/data/UserRegistry.java:17`, a `ConcurrentHashMap<String, ParaBankUser>` keyed by user id (U01…U10). Registration
+   scenarios run on 3 TestNG threads at once (`@DataProvider(parallel = true)`), and each thread calls
+   `UserRegistry.register(...)` (`RegistrationSteps.java:41`) with the freshly created username and password. Later,
+   `TestContext.registeredUser()` (`TestContext.java:78`) reads it back with `UserRegistry.find(id)` and falls back to
+   Excel only if the user isn't in memory. So login and transfer scenarios in the same run use the new credentials
+   without re-reading the workbook.
+2. `core/report/ExtentCucumberPlugin.java:39,42`, `ConcurrentHashMap<UUID, ExtentTest>`. Cucumber events from parallel
+   scenarios arrive on different threads, and each event must find its own report node by the test case id.
+   `REPORTS.computeIfAbsent(path, ...)` (line 46) creates the shared `ExtentReports` exactly once even if two runners
+   start at the same moment.
+
+Why: a plain `HashMap` written by 3 threads can lose entries or corrupt its internal table. `Collections.synchronizedMap`
+works but locks the whole map for every call. `ConcurrentHashMap` locks per bin, never throws
+`ConcurrentModificationException` while iterating, and has atomic `computeIfAbsent`/`putIfAbsent`.
+Proof: `UserRegistryTest` registers 200 users from a `parallel()` stream and expects exactly 200.
+
+**Q: Where did you use a `Deque` / `ArrayDeque`?**
+A: `pb/service/TransferQueue.java:27`. The `CHAIN` transfer scenario reads several transfers from the Transfers sheet.
+They must run **in order**, because each one moves money the next one may need. They're added with `offerLast` and
+processed with `pollFirst()` (line 46) until the queue is empty (FIFO). `ArrayDeque` gives O(1) at both ends and has
+no locking overhead (one scenario thread owns the queue). Not `LinkedList`: more memory per element and worse cache
+locality. Not `Stack`: synchronised and LIFO.
+
+**Q: Where did you use a `Set`, and why?**
+A: Wherever uniqueness or "what changed" matters:
+- `TransferSteps.java:88,96`: account ids before and after "Open New Account" go into two `HashSet<Long>`s. The
+  difference must be exactly one id, which proves a new account was created and identifies it.
+- `ApiSteps.java:172-178`: the same for the API; `ApiSteps.java:234` for share positions.
+- `UiDriver.windowHandles()` returns a `Set<String>` (handles are unique). `FooterSteps.java:41` checks there are
+  exactly two tabs, then that only the parent is left. `LinkedHashSet` is used so the order stays predictable.
+- `ParaBankApi.OPERATIONS` is an immutable `Set.of(...)` that `ApiCoverageTest` compares with the OpenAPI spec.
+- `TestDataRepository.java:75`: a `Set` of keys finds template rows missing from the working workbook (O(1) `contains`).
+
+**Q: Where did you use `LinkedHashMap`, `TreeMap`, `TreeSet`, and why those over `HashMap`/`HashSet`?**
+A: When order is part of the result:
+- `LinkedHashMap` keeps insertion order. `RunHistory.java:21-22` keeps scenarios in execution order for the combined
+  report, `ExcelUtil` keeps column order when reading a row, and `PlaywrightUiDriver.java:46` keeps tabs in opening order.
+- `TreeMap` sorts by key. `TransferLedger.java:27` gives the expected balance change per account, sorted by account
+  number, so the log and the Excel output are stable and easy to compare.
+- `TreeSet` with a comparator. `OpenApiContract.java:50` sorts API operations by path, then method, so a coverage
+  failure lists them readably.
+
+**Q: Where did you use immutable collections?**
+A: `List.copyOf` in constructors and getters (`RetryOrchestrator.java:42`, `MavenRunExecutor.java:34`,
+`RunHistory.java:37`) and `Collections.unmodifiableMap` for Excel rows (`ExcelUtil.java:193`). A caller can't change
+the engine's internal state through a list it was given. A defensive copy is cheap and removes a whole class of bugs.
+
+### Streams and functional interfaces
+
+**Q: Show a non-trivial Stream you wrote.**
+A: `pb/service/TransferLedger.expectedNetChange`: each transfer becomes two entries, (from, −amount) and
+(to, +amount), with `flatMap`, then `groupingBy(account, TreeMap::new, reducing(ZERO, value, BigDecimal::add))`. The
+result is the net change per account for a whole chain of transfers, which the test compares with real balances from
+the API. Others:
+- `CombinedReport.java:72`: `groupingBy(feature, LinkedHashMap::new, toList())` builds the report sections.
+- `CombinedReport.java:79`: `toMap(run, passed, Boolean::logicalOr)`. The merge function was a real bug fix: the same
+  scenario can appear twice in one run, and `toMap` without a merge function threw `IllegalStateException: Duplicate key`.
+- `TransferSteps.java:277`: `toMap(Function.identity(), api::balance)` gives balances for a set of accounts.
+- `ApiSteps.java:137`: `max(comparingLong(Transaction::id))` finds the newest transaction.
+
+**Q: Where did you pass behaviour as a parameter (lambdas, functional interfaces)?**
+A:
+- `ApiClient.send(Function<RequestSpecification, Response> call)` (`ApiClient.java:74`) takes "the request to make".
+  On HTTP 429 it waits (`Retry-After` or back-off) and calls the same function again. One retry loop serves every
+  endpoint.
+- `MavenRunExecutor` takes an `IntFunction<List<String>>`: extra arguments per run number (the demo failure injection
+  for runs 1..N). The orchestrator decides the policy, the executor just applies it.
+- `PlaywrightUiDriver.until(Duration, Supplier<T>, String)` is a generic "poll until non-null" helper, like Selenium's
+  `WebDriverWait.until`.
+
+### Concurrency
+
+**Q: How is your framework thread-safe with 3 parallel scenarios?**
+A: Each kind of shared state has its own tool:
+| Shared thing | Tool | Where |
+|---|---|---|
+| Browser per scenario | `ThreadLocal` | `DriverManager.java:11`, `UiSession.java:11` |
+| Users registered this run | `ConcurrentHashMap` | `UserRegistry.java:17` |
+| Excel workbook (one file) | `ReentrantLock` around read-modify-write | `ExcelUtil.java:32` (lines 75, 105) |
+| Unique username counter | `AtomicInteger.incrementAndGet()` | `TestDataGenerator.java:19` |
+| Report nodes per scenario | `ConcurrentHashMap` + `computeIfAbsent` | `ExtentCucumberPlugin.java:39-46` |
+| Per-scenario objects (pages, context) | Cucumber PicoContainer creates new ones per scenario | `TestContext` |
+
+**Q: Why a `ReentrantLock` for Excel and not `synchronized`?**
+A: Both would work here. An explicit lock object, `WRITE_LOCK`, is one static guard for every method that writes the
+file, and its `lock()`/`unlock()` pairs sit next to the try-with-resources that opens the workbook. Without it, two
+threads would each read the file, change different rows and save, and the second save would erase the first one's
+row (a lost update). Excel files are not transactional.
+
+**Q: Where did you use `ThreadLocal`, and what is the risk?**
+A: `DriverManager` (one `WebDriver` per thread) and `UiSession` (one Selenium or Playwright session per thread). The
+risk is leaks with thread pools: a value left behind is seen by the next test on that thread. So `quit()` always
+calls `remove()` in a `finally`, and the `@After(order = 0)` hook always calls `quit()`.
+
+### Modern Java
+
+**Q: Where did you use records?**
+A: For immutable data with value equality:
+- `Locator(strategy, value)`;
+- `Account`, `Transaction`, `Customer`, `LoanResult`;
+- `ScenarioResult`, `BrowserChoice`, `UiOptions`;
+- a private `UiSession.Running(ui, stopper)`.
+Records give `equals`/`hashCode` for free, which the tests rely on (`containsExactly(new BrowserChoice(...))`).
+Compact constructors validate input (`Locator`, `BrowserChoice`, `UiOptions` reject nulls and blanks).
+
+**Q: Where did you use switch expressions?**
+A: Mapping one enum to one result, where the compiler checks every case is covered:
+- `Locator.parse` (prefix to strategy);
+- `SeleniumUiDriver.toBy` and `PlaywrightUiDriver.selector` (strategy to engine locator);
+- `UiSession.start` (engine to session);
+- `DriverFactory.create` (browser to driver).
+Adding a new enum constant then fails compilation in every switch that forgot it.
+
+**Q: Where did you use `Optional`, and where did you avoid it?**
+A: As a return type for "may be absent":
+- `ConfigReader.find(key)`;
+- `UserRegistry.find(id)`;
+- `UiDriver.waitForAnyVisible(...)` (which locator appeared, or none);
+- `ApiClient.retryAfter` (header present and numeric, or not).
+Not used for fields or parameters, except `LoanResult.loanAccountId`, where "no account because the loan was denied"
+is part of the domain.
+
+**Q: Why `BigDecimal` for money?**
+A: `0.1 + 0.2` in `double` is `0.30000000000000004`. Balances are compared exactly (`balance changed by exactly 12.34`),
+so every amount is a `BigDecimal` (`Account`, `TransferCase`, `TransferLedger`, `ApiSteps`) and compared with
+`compareTo`/`isEqualByComparingTo`. `equals` would make `1.0` and `1.00` different.
+
+**Q: Where did you use regular expressions?**
+A:
+- `TestDataRepository.java:36`: `\{(U\d+)}` replaces `{U01}` in the LoginNegative sheet with U01's real username.
+- `Hooks.java:36`: the demo's `-Dinject.failure` is a regex over scenario names.
+- A Cucumber regex step in `ApiSteps` (`(withdrawal|transfer) ... (balance plus )?(-?[0-9.]+)`).
+- Jenkins parameter validation (`THREADS ==~ /^[1-9][0-9]?$/`).
+
+**Q: Where did you use try-with-resources and `AutoCloseable`?**
+A:
+- Opening POI workbooks (`ExcelUtil`).
+- `Files.walk`/`Files.list` streams (`MavenRunExecutor`, `CucumberJsonReader`, `ApiCoverageTest`): these hold OS file
+  handles until closed.
+- `PlaywrightUiDriver implements AutoCloseable`: `close()` shuts the context, browser and driver process in reverse
+  order, each in a `finally`.
+
+### Design patterns (and where)
+
+| Pattern | Where | Why |
+|---|---|---|
+| Page Object | `pb/pages/*Page.java` | Locators and page actions in one place; steps read like the business flow |
+| Strategy | `UiDriver` → `SeleniumUiDriver` / `PlaywrightUiDriver`, chosen by `ui.engine` | Switch engines by config (guide 13) |
+| Factory | `DriverFactory.create(browser, headless)`, `PlaywrightUiDriver.launch(options)` | Browser setup (options, prefs) in one place |
+| Singleton (eager, immutable) | `ParaBankConfig.get()` | Config read once; safe to share across threads |
+| Dependency injection | Cucumber PicoContainer injects `TestContext` into hooks and steps | Per-scenario state without static fields |
+| Template method | `RetryAwareCucumberTests` extends `AbstractTestNGCucumberTests` and overrides `scenarios()` | Filters retry scenarios; the runner's flow is unchanged |
+| Dependency inversion / test double | `RunExecutor` interface; `RetryOrchestratorTest` uses a `ScriptedExecutor` | The retry logic is unit-tested in milliseconds, no Maven or browser |
+| Builder-style fluent API | `TransferQueue.add(...)` returns `this`; Rest Assured `given().when().then()` | Readable setup |
+| Parameter object | `UiOptions` record | One argument instead of five; easy to extend |
+
+**Q: How did you make time and randomness testable?**
+A: `TestDataGenerator` takes a `java.time.Clock` and a `Random` in its constructor (`TestDataGenerator.java:27`). The
+production constructor uses the system clock and `SecureRandom`, and the test passes `Clock.fixed(...)`, so the
+generated username `qa_261121183405_001` can be asserted exactly. `ApiClient` likewise takes a `Sleeper` (a functional
+interface): `ApiClientRetryTest` passes `waits::add`, so the 429 retry records the waits it *would* do (7 s, 7 s from
+`Retry-After`) instead of sleeping.
