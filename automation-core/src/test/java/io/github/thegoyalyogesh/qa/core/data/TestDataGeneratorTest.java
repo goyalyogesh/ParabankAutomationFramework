@@ -30,6 +30,19 @@ public class TestDataGeneratorTest {
         assertThat(names).hasSize(500);
     }
 
+    /**
+     * Regression test for a bug found in the first live run (2026-11-21): every Cucumber scenario created its own
+     * generator, each with its own counter starting at 001, so three parallel threads in the same second all
+     * produced qa_..._001. The sequence must be shared by all instances in the JVM.
+     */
+    @Test
+    public void separateInstancesNeverProduceTheSameUsername() {
+        Set<String> names = IntStream.range(0, 300).parallel()
+                .mapToObj(i -> new TestDataGenerator(fixedClock, new Random(i)).uniqueUsername("qa"))
+                .collect(Collectors.toSet());
+        assertThat(names).hasSize(300);
+    }
+
     @Test
     public void passwordHasUpperLowerAndDigits() {
         assertThat(generator.password()).matches("(?=.*[A-Z])(?=.*[a-z])(?=.*\\d)[A-Za-z\\d]{10}");

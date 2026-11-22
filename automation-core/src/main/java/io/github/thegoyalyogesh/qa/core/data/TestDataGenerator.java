@@ -15,7 +15,8 @@ public final class TestDataGenerator {
     private static final String LOWER = "abcdefghijkmnpqrstuvwxyz";
     private static final String DIGITS = "23456789";
 
-    private final AtomicInteger sequence = new AtomicInteger();
+    /** Shared by every instance in the JVM: parallel scenarios each create their own generator. */
+    private static final AtomicInteger SEQUENCE = new AtomicInteger();
     private final Clock clock;
     private final Random random;
 
@@ -31,7 +32,7 @@ public final class TestDataGenerator {
     /** e.g. {@code qa_20261121183405_007}: timestamp separates runs, sequence separates threads. */
     public String uniqueUsername(String prefix) {
         String timestamp = LocalDateTime.now(clock).format(TIMESTAMP);
-        int next = sequence.incrementAndGet() % 1000;
+        int next = SEQUENCE.incrementAndGet() % 1000;
         return "%s_%s_%03d".formatted(prefix, timestamp, next);
     }
 
