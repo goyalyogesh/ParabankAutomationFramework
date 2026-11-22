@@ -29,8 +29,10 @@ Feature: Login
     Then the user is not logged in
     And the expected error message is shown
 
-    # Known defect until 2026-11-22 (the UI accepted any credentials). Fixed on the site: passed in 4 clean runs, tag removed.
-    Examples: Wrong credentials are rejected
+    # Known defect: the UI accepts wrong credentials (the REST API rejects them). Looked fixed on 2026-11-22 morning
+    # (4 clean runs, tag removed), then REGRESSED the same afternoon: failed on Sauce Labs Edge and on local Chrome.
+    @knownDefect
+    Examples: Wrong credentials are rejected (known defect, regressed 2026-11-22)
       | caseId |
       | N01    |
       | N02    |

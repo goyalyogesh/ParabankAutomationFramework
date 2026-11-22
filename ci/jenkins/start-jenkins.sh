@@ -13,6 +13,19 @@ if [[ ! -f "$DIR/admin-password" ]]; then
 fi
 export JENKINS_ADMIN_PASSWORD="$(cat "$DIR/admin-password")"
 export JENKINS_HOME="$DIR/home"
+
+# Sauce Labs: copy SAUCE_USERNAME / SAUCE_ACCESS_KEY from the git-ignored .env into JCasC secret files (one file per
+# variable). JCasC reads them into the "sauce-labs" credential; they never become environment variables of Jenkins.
+SECRETS_DIR="$DIR/secrets"
+(umask 077; mkdir -p "$SECRETS_DIR")
+if [[ -f "$ROOT/.env" ]]; then
+  while IFS='=' read -r key value; do
+    case "$key" in
+      SAUCE_USERNAME|SAUCE_ACCESS_KEY) (umask 077; printf '%s' "$value" > "$SECRETS_DIR/$key") ;;
+    esac
+  done < "$ROOT/.env"
+fi
+export SECRETS="$SECRETS_DIR"
 # Folder that holds mvn on THIS machine (Apple Silicon: /opt/homebrew/bin, Intel Mac: /usr/local/bin, Linux: /usr/bin...)
 MVN="$(command -v mvn)" || { echo "mvn is not on PATH - install Maven first" >&2; exit 1; }
 export TOOLS_PATH="${TOOLS_PATH:-$(dirname "$MVN")}"

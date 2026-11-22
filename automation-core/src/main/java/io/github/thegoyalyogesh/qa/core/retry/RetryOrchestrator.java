@@ -28,7 +28,8 @@ public final class RetryOrchestrator {
     public static final String DEFAULT_ROTATION = "chrome,firefox,playwright:chrome";
 
     /** System properties forwarded to every run, if set; more with {@code -Dretry.passThrough=key1,key2}. */
-    private static final List<String> PASS_THROUGH = List.of("threads", "timeout.seconds", "app.url", "api.url", "suiteXmlFile");
+    private static final List<String> PASS_THROUGH = List.of("threads", "timeout.seconds", "app.url", "api.url", "suiteXmlFile",
+            "sauce.region", "sauce.build");
 
     private final ThresholdPolicy policy;
     private final List<BrowserChoice> rotation;

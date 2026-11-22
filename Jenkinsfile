@@ -6,7 +6,7 @@ pipeline {
     parameters {
         string(name: 'THREADS', defaultValue: '3', description: 'Parallel scenarios per block')
         string(name: 'THRESHOLD', defaultValue: '85', description: 'Pass rate (%) needed; below it, failed scenarios are retried')
-        string(name: 'BROWSER_ROTATION', defaultValue: 'chrome,firefox,playwright:chrome', description: 'Browser for run 1, 2, 3 ([engine:]browser[-headless])')
+        string(name: 'BROWSER_ROTATION', defaultValue: 'chrome,firefox,playwright:chrome', description: 'Browser for run 1, 2, 3 ([engine:]browser[-headless]); engines: selenium (default), playwright, sauce (cloud: chrome, firefox, edge, safari)')
         booleanParam(name: 'HEADLESS', defaultValue: true, description: 'No browser windows (CI default)')
         booleanParam(name: 'DEMO_RETRY', defaultValue: false, description: 'Fail 6 login scenarios in runs 1 and 2 on purpose (threshold 100%), so run 3 (Playwright) shows the retry')
     }
@@ -56,14 +56,24 @@ pipeline {
                              "RUN_ROTATION=${params.BROWSER_ROTATION}",
                              "RUN_HEADLESS=${params.HEADLESS}",
                              "RUN_DEMO=${params.DEMO_RETRY}"]) {
-                        sh '''
+                        def suite = '''
                             set -- -Dheadless="$RUN_HEADLESS" -Dthreads="$RUN_THREADS" -Dthreshold="$RUN_THRESHOLD" \
-                                   -Dbrowser.rotation="$RUN_ROTATION" -Dtestdata.file="$TESTDATA_FILE" -Dretry.passThrough=testdata.file
+                                   -Dbrowser.rotation="$RUN_ROTATION" -Dtestdata.file="$TESTDATA_FILE" -Dretry.passThrough=testdata.file \
+                                   -Dsauce.build="Jenkins $JOB_NAME #$BUILD_NUMBER"
                             if [ "$RUN_DEMO" = "true" ]; then
                                 set -- "$@" "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2
                             fi
                             mvn -B -pl parabank-tests exec:java "$@"
                         '''
+                        if (params.BROWSER_ROTATION.contains('sauce:')) {
+                            // Only runs that use Sauce Labs get the credentials; Jenkins masks them in the log.
+                            withCredentials([usernamePassword(credentialsId: 'sauce-labs',
+                                    usernameVariable: 'SAUCE_USERNAME', passwordVariable: 'SAUCE_ACCESS_KEY')]) {
+                                sh suite
+                            }
+                        } else {
+                            sh suite
+                        }
                     }
                 }
             }

@@ -72,6 +72,9 @@ public final class PlaywrightUiDriver implements UiDriver, AutoCloseable {
             Browser browser = switch (options.browser()) {
                 case CHROME -> playwright.chromium().launch(launch.setChannel("chrome"));
                 case FIREFOX -> playwright.firefox().launch(launch);
+                case SAFARI, EDGE -> throw new IllegalArgumentException(options.browser()
+                        + " is not set up for Playwright here; run it on Sauce Labs (sauce:"
+                        + options.browser().name().toLowerCase() + ")");
             };
             return new PlaywrightUiDriver(playwright, browser, options.timeout());
         } catch (RuntimeException e) {

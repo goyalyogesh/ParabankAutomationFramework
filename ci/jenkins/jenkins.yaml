@@ -18,6 +18,18 @@ jenkins:
         env:
           - key: "PATH+TOOLS"             # folder holding mvn; set by start-jenkins.sh, works on any machine
             value: "${TOOLS_PATH:-/opt/homebrew/bin}"
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          # Sauce Labs account. Values come from JCasC secret files written by start-jenkins.sh from the git-ignored
+          # .env (tools/jenkins/secrets/, readable only by you), so they are never in git or in Jenkins' environment.
+          - usernamePassword:
+              scope: GLOBAL
+              id: "sauce-labs"
+              description: "Sauce Labs username + access key"
+              username: "${SAUCE_USERNAME:-not-configured}"
+              password: "${SAUCE_ACCESS_KEY:-not-configured}"
 unclassified:
   location:
     url: "http://127.0.0.1:8081/"

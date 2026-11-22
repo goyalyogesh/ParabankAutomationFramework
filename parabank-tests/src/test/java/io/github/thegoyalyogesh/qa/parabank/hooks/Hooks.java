@@ -76,6 +76,7 @@ public class Hooks {
 
     @After(order = 0)
     public void quitBrowser(Scenario scenario) {
+        UiSession.reportResult(scenario.getName(), !scenario.isFailed()); // Sauce Labs dashboard; no-op locally
         UiSession.quit();
         LOG.info("FINISH {} -> {}", scenario.getName(), scenario.getStatus());
     }

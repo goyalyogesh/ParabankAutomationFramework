@@ -21,6 +21,8 @@ public final class DriverFactory {
         WebDriver driver = switch (type) {
             case CHROME -> new ChromeDriver(chromeOptions(headless));
             case FIREFOX -> new FirefoxDriver(firefoxOptions(headless));
+            case SAFARI, EDGE -> throw new IllegalArgumentException(type
+                    + " runs on Sauce Labs only: use ui.engine=sauce (rotation entry sauce:" + type.name().toLowerCase() + ")");
         };
         driver.manage().timeouts().pageLoadTimeout(PAGE_LOAD_TIMEOUT);
         return driver;
