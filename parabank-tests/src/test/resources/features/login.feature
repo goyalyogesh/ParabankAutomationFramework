@@ -29,8 +29,8 @@ Feature: Login
     Then the user is not logged in
     And the expected error message is shown
 
-    @knownDefect
-    Examples: Known defect - the UI accepts any credentials (the REST API rejects them correctly)
+    # Known defect until 2026-11-22 (the UI accepted any credentials). Fixed on the site: passed in 4 clean runs, tag removed.
+    Examples: Wrong credentials are rejected
       | caseId |
       | N01    |
       | N02    |

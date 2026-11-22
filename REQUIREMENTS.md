@@ -89,3 +89,19 @@ ThreadLocal `ExtentTest`; Base64 screenshots; Jenkins: Extent needs the Jenkins 
 
 ## 7. Out of scope (for now)
 IE (retired, impossible on macOS), Safari, mobile, performance testing.
+
+## 8. Delivery status (2026-11-22)
+
+| # | Status | Where |
+|---|---|---|
+| F1–F5 | Done | guides 04, 07; `RegistrationService`, `TestDataRepository` |
+| F6 | Done. The UI defect was fixed by ParaBank on 2026-11-22, so the `@knownDefect` tag was removed after 4 clean runs (D65) | guide 08 |
+| F7, F9 | Done | guide 09 |
+| F8 | Done, with a finding: Bill Pay treats the payee as an external company, so B's balance does not change (checked through the API). UI defect fixed for B01; B02 still watched | guide 09 |
+| F10 | Done: 22 operations, OpenAPI contract validation, 26 scenarios, 7 API defects found | guide 12 |
+| F11, F12 | Done | guides 07, 08 |
+| E1, E2, E5, E8, E9 | Done | guides 05, 06, 10 |
+| E3 | Done; superseded by E4 for run 3. Default rotation is now `chrome,firefox,playwright:chrome` | guide 10 |
+| E4 | Done: `PlaywrightUiDriver`, `ui.engine` / `playwright:` rotation entries; shown live in Jenkins builds 4 and 6 | guide 13 |
+| E6 | Done, plus parameter validation against command injection (D64) | guide 11 |
+| E7 | **Open**: the owner will create the JFrog account; `distributionManagement` is ready in the root POM | plan 05, task 6 |

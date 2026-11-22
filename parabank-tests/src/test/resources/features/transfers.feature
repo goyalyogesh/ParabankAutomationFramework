@@ -31,10 +31,16 @@ Feature: Money transfers
     And the payee's balance does not change, because Bill Pay treats the payee as an external company
     And the payer's transactions include the bill payment
 
-    @knownDefect
-    Examples: Known defect - the UI shows "Bill Payment Complete" but never debits the payer (its services_proxy call does nothing; the REST endpoint works, see B03)
+    # B01 was a known defect until 2026-11-22 (confirmation shown, payer never debited). Fixed on the site: passed in 4 clean runs, tag removed.
+    Examples: UI Bill Pay
       | transferId |
       | B01        |
+
+    # B02: same defect originally. Passed in 3 clean runs, then failed in Jenkins build 4 with a different symptom
+    # (no confirmation within 20 s). Kept tagged until it passes again in a couple of clean runs.
+    @knownDefect
+    Examples: Known defect (under watch) - the UI showed "Bill Payment Complete" but never debited the payer; see B03 for the REST path
+      | transferId |
       | B02        |
 
   @apiBillPay @api

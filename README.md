@@ -1,6 +1,6 @@
 # Banking Automation Framework (ParaBank)
 
-Java 21 · Selenium 4 · Cucumber · TestNG · Apache POI · Rest Assured · Jenkins · JFrog Artifactory
+Java 21 · Selenium 4 · Playwright · Cucumber · TestNG · Apache POI · Rest Assured · Jenkins · JFrog Artifactory
 
 A showcase UI + API automation framework for https://parabank.parasoft.com/parabank.
 
@@ -21,6 +21,7 @@ mvn -pl automation-core test -Dgroups=browser -Dcore.excludedGroups=none   # cor
 mvn -q install -DskipTests                                    # build + install the core library once
 mvn -pl parabank-tests test -Dheadless=true                   # registration (10 users) then login, 3 threads
 mvn -pl parabank-tests test -Dbrowser=firefox -Dthreads=2     # other browser / thread count
+mvn -pl parabank-tests test -Dui.engine=playwright            # same tests on Playwright instead of Selenium (guide 13)
 mvn -pl parabank-tests test -DsuiteXmlFile=testng-registration.xml   # registration only
 mvn -pl parabank-tests test -DsuiteXmlFile=testng-transfers.xml      # transfers only (needs registered users)
 mvn -pl parabank-tests test -DsuiteXmlFile=testng-unit.xml           # fast unit tests, no browser
@@ -28,8 +29,9 @@ mvn -pl parabank-tests test -DsuiteXmlFile=testng-unit.xml           # fast unit
 Results: `parabank-tests/target/reports/spark.html` (Extent), `target/cucumber/` (Cucumber HTML/JSON),
 `testdata/ParaBankData.xlsx` (credentials and results written back; created from `ParaBankData-template.xlsx`).
 
-Expected today: 35 scenarios, 30 pass, 5 fail on purpose (`@knownDefect`): the UI logs in with any credentials
-(N01, N02, N07) and UI Bill Pay never debits the payer (B01, B02). See `docs/guide/08` and `09`.
+Expected today: 35 UI scenarios, all pass. The UI used to log in with any credentials (N01, N02, N07) and UI Bill Pay
+never debited the payer (B01, B02). ParaBank fixed both by 2026-11-22: the tags were removed after 4 clean runs, except
+B02, which is still tagged `@knownDefect` while it is watched. See `docs/guide/08` and `09`.
 The REST API suite (guide 12) adds 26 scenarios: 19 pass, 7 are known API defects.
 `mvn -pl parabank-tests test -Dtest=ApiRunner` runs only the API scenarios (needs registered users).
 

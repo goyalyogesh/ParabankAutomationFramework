@@ -29,6 +29,13 @@ We do **not** change the assertion to "expect login to succeed". That would make
 > N07 was first planned as a validation case (an error was seen once during the spike). The real run showed it logs
 > in, and a manual check confirmed it, so it moved to the known-defect table. Plan from observations, then verify.
 
+### Update 2026-11-22: fixed on the site, tag removed
+From 2026-11-22 the retry engine's "Known defects that passed" line listed N01, N02 and N07 in every run. The Excel
+write-back confirmed the cause: the error message was really shown, so the site had changed. The decision was not
+to remove the tag after the first pass, but to watch a few clean runs. After 4 clean runs (2 local, Jenkins builds 4
+and 6) the `@knownDefect` tag was removed (D65). The cases now sit in a normal Examples table, "Wrong credentials are
+rejected". If ParaBank regresses, they fail and count against the threshold, which is exactly what we want.
+
 ## Selenium 4 features in real flows
 | Feature | Where | API |
 |---|---|---|

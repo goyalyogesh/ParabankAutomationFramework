@@ -66,8 +66,10 @@ static fields.
 ## Features (Gherkin)
 - `registration.feature`: a Scenario Outline whose Examples are only **Excel keys** (`U01`…`U10`). The data itself is
   in Excel, so business users edit the workbook, not the feature file.
-- `login.feature`: positive logins U01–U10; negative cases N01–N07 split into two Examples tables. The table tagged
-  `@knownDefect` holds the cases that fail because of the ParaBank bug (UI accepts any credentials).
+- `login.feature`: positive logins U01–U10; negative cases N01–N07 split into two Examples tables. Until 2026-11-22 the
+  first table was tagged `@knownDefect` (ParaBank's UI accepted any credentials); the site was fixed and the tag removed
+  (guide 08). A tag on an `Examples` block applies only to that block's rows, which is how one outline can mix
+  known-defect rows with normal ones (see B02 in `transfers.feature`).
 - `footer.feature` (`@selenium4`): opens the Parasoft footer link in a new tab and checks the window handles.
 
 ## Reports produced by one run

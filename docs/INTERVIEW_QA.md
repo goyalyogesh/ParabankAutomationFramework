@@ -132,7 +132,13 @@ A: If a later check fails, the generated username/password would otherwise be lo
 
 **Q: Why call the REST API from a UI test?**
 A: Setup and verification are faster and more reliable through the API, and here the API is the truth source:
-the UI accepts any credentials, the API does not.
+when this was built, the UI accepted any credentials and the API did not.
+
+**Q: A known defect started passing. What did you do?**
+A: The retry engine reports "known defects that passed", so it was noticed on the first run. I checked the evidence
+(Excel showed the real error message and the real debit), then kept the tag while watching a few more clean runs. After 4
+clean runs I removed the tag from four cases. One case (B02) failed once with a different symptom, so it stays tagged.
+Remove a tag too early and a flaky site turns the build red; keep it too long and it hides a regression.
 
 **Tweak: Every registration failed with "This username already exists", even with unique names. How do you debug?**
 A: Don't trust the message. Reproduce outside the framework (curl), change one variable at a time: random 14-char

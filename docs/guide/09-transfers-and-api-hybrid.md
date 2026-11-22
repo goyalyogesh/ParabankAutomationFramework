@@ -28,6 +28,11 @@ How it was isolated:
 So B01/B02 are tagged `@knownDefect` (assertions unchanged), and **B03** proves the A → B flow through the endpoint
 that works. The Excel sheet shows it side by side: B01 balance before = after; B03 before − 7.25 = after.
 
+**Update 2026-11-22:** the site was fixed: B01 debited 515.50 → 485.50 in Excel. B01 passed 4 clean runs and lost its
+tag (D65). B02 passed 3 runs, then failed once in Jenkins build 4 with a *different* symptom (no confirmation within
+20 s, likely site slowness), then passed in build 6. It keeps `@knownDefect` in its own Examples table until it passes
+another clean run. A tag is removed on evidence, not on one lucky pass.
+
 ## Finding: `/transfer` has no ownership check and no authentication
 The UI only lists *your own* accounts on Transfer Funds. The REST endpoint accepts any two account numbers from
 anyone, with no login. The chain scenario (C01–C03) relies on this and documents it. In a real bank this would be

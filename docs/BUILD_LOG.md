@@ -337,3 +337,17 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
   (site served John Smith's session; passed alone) → 97.9%, SUCCESS.
 - The 5 UI known defects passed for the 3rd clean run in a row.
 
+- **Jenkins build 3** (`DEMO_RETRY`): run 1 = 59 executed, 87.2% ≥ 85% → no retry. The suite grew with the API
+  features, so 6 injected failures no longer drop below 85%. Fix: demo mode uses a 100% threshold.
+- **Jenkins build 4** (`DEMO_RETRY`, threshold 100): run 1 Chrome 87.2% → run 2 Firefox: 6 retried, 6 failed (still
+  injected) → **run 3 Playwright Chrome: 6 retried, 6 passed → 100%, SUCCESS.** The whole E4 chain, live in CI.
+  4 of the 5 UI known defects passed (B02 failed this time, so it stays tagged).
+- **Security review** flagged command injection: Jenkins parameters were interpolated into `sh """..."""`. Fixed
+  (D64): format checks + `withEnv` + single-quoted `sh`. **Build 5** with `BROWSER_ROTATION=chrome;touch /tmp/pwned`
+  → FAILURE with "BROWSER_ROTATION may only contain a-z : , -"; no file created.
+- **Jenkins build 6** (`DEMO_RETRY`, hardened Jenkinsfile): the command shows `-Dbrowser.rotation=chrome,firefox,playwright:chrome`
+  built from environment variables; run 1 Chrome 87.2% → run 2 Firefox 6/6 failed → run 3 Playwright 6/6 passed →
+  100%, SUCCESS. All 5 old UI known defects passed.
+- **Known-defect tags (user decision, 2026-11-22):** removed from N01, N02, N07 and B01 after 4 clean runs (D65). B02
+  stays tagged (failed once in build 4 with a timeout, passed in build 6).
+- After untagging: Login + Transfer runners (Selenium, headless) 23/23 passed, including N01, N02, N07, B01 and B02.

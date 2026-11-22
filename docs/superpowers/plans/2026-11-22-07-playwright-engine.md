@@ -1,4 +1,4 @@
-# Plan 07: Playwright as a second UI engine (run 3) - Implementation Plan
+# Plan 07 — Playwright as a Second UI Engine (Run 3) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
