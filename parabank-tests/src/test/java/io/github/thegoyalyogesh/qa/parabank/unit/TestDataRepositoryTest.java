@@ -126,6 +126,8 @@ public class TestDataRepositoryTest {
                 List.of(Map.of("UserId", "U01", "Username", "keep_me")));
         TestDataRepository.fromTemplate(older, file);
         assertThat(ExcelUtil.sheetNames(older)).contains(TestDataRepository.TRANSFERS, TestDataRepository.LOGIN_NEGATIVE);
-        assertThat(ExcelUtil.readSheet(older, TestDataRepository.USERS).get(0)).containsEntry("Username", "keep_me");
+        List<Map<String, String>> users = ExcelUtil.readSheet(older, TestDataRepository.USERS);
+        assertThat(users).extracting(row -> row.get("UserId")).as("template row U02 added").containsExactly("U01", "U02");
+        assertThat(users.get(0)).as("existing row untouched").containsEntry("Username", "keep_me");
     }
 }

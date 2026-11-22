@@ -15,12 +15,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /** Reads and writes the ParaBank test-data workbook. All access goes through ExcelUtil (thread-safe writes). */
 public final class TestDataRepository {
@@ -40,7 +43,8 @@ public final class TestDataRepository {
 
     /**
      * Repository on a working copy of the template. The template (tracked in git) is never written to.
-     * First use copies it; an existing copy from an older version gets any sheet it is missing, and keeps its data.
+     * First use copies it. An existing copy from an older version gets the sheets and rows it is missing
+     * (rows matched by the first column, e.g. UserId); rows it already has are never changed.
      */
     public static TestDataRepository fromTemplate(Path workingFile, Path template) {
         try {
@@ -49,15 +53,34 @@ public final class TestDataRepository {
                 Files.copy(template, workingFile);
             } else {
                 List<String> present = ExcelUtil.sheetNames(workingFile);
-                ExcelUtil.sheetNames(template).stream()
-                        .filter(sheet -> !present.contains(sheet))
-                        .forEach(sheet -> ExcelUtil.writeSheet(workingFile, sheet,
-                                ExcelUtil.readHeaders(template, sheet), ExcelUtil.readSheet(template, sheet)));
+                for (String sheet : ExcelUtil.sheetNames(template)) {
+                    if (present.contains(sheet)) {
+                        addMissingRows(workingFile, template, sheet);
+                    } else {
+                        ExcelUtil.writeSheet(workingFile, sheet,
+                                ExcelUtil.readHeaders(template, sheet), ExcelUtil.readSheet(template, sheet));
+                    }
+                }
             }
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot create " + workingFile + " from " + template, e);
         }
         return new TestDataRepository(workingFile);
+    }
+
+    private static void addMissingRows(Path workingFile, Path template, String sheet) {
+        List<String> headers = ExcelUtil.readHeaders(workingFile, sheet);
+        String key = headers.get(0);
+        List<Map<String, String>> rows = ExcelUtil.readSheet(workingFile, sheet);
+        Set<String> keys = rows.stream().map(row -> row.get(key)).collect(Collectors.toSet());
+        List<Map<String, String>> missing = ExcelUtil.readSheet(template, sheet).stream()
+                .filter(row -> !keys.contains(row.get(key)))
+                .toList();
+        if (!missing.isEmpty()) {
+            List<Map<String, String>> all = new ArrayList<>(rows);
+            all.addAll(missing);
+            ExcelUtil.writeSheet(workingFile, sheet, headers, all);
+        }
     }
 
     public Path file() {

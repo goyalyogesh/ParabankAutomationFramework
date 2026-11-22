@@ -72,7 +72,10 @@ public final class CreateTestDataWorkbook {
         }
     }
 
-    /** Each scenario uses its own customers, so parallel threads never touch the same account. */
+    /**
+     * UI scenarios (OWN, B01, B02) run in parallel, so each uses its own customers. API scenarios (B03, CHAIN) run
+     * one at a time after the UI block, so they may reuse customers.
+     */
     static List<Map<String, String>> transfers() {
         return List.of(
                 transfer("T01", "OWN", "U01", "", "25", "Move money into a new savings account"),
@@ -80,6 +83,7 @@ public final class CreateTestDataWorkbook {
                 transfer("T03", "OWN", "U03", "", "10", "Move money into a new savings account"),
                 transfer("B01", "BILLPAY", "U04", "U05", "30", "Pay another customer through Bill Pay"),
                 transfer("B02", "BILLPAY", "U06", "U07", "12.75", "Pay another customer through Bill Pay"),
+                transfer("B03", "BILLPAY", "U04", "U05", "7.25", "Pay another customer through the REST Bill Pay endpoint"),
                 transfer("C01", "CHAIN", "U08", "U09", "20", "API chain step 1"),
                 transfer("C02", "CHAIN", "U09", "U10", "15", "API chain step 2"),
                 transfer("C03", "CHAIN", "U10", "U08", "5", "API chain step 3"));

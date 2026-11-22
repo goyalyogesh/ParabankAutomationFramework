@@ -2,11 +2,14 @@ package io.github.thegoyalyogesh.qa.parabank.api;
 
 import io.github.thegoyalyogesh.qa.core.api.ApiClient;
 import io.github.thegoyalyogesh.qa.parabank.model.Account;
+import io.github.thegoyalyogesh.qa.parabank.model.ParaBankUser;
 import io.github.thegoyalyogesh.qa.parabank.model.Transaction;
+import io.restassured.http.ContentType;
 import io.restassured.path.json.config.JsonPathConfig;
 import io.restassured.response.Response;
 
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,16 +28,16 @@ public final class ParaBankApi {
 
     /** Customer id if the credentials work, otherwise empty. The API, unlike the UI, rejects bad credentials. */
     public Optional<Long> login(String username, String password) {
-        Response response = client.request()
+        Response response = client.send(request -> request
                 .pathParam("username", username)
                 .pathParam("password", password)
-                .get("/login/{username}/{password}");
+                .get("/login/{username}/{password}"));
         boolean ok = response.statusCode() == 200 && String.valueOf(response.contentType()).contains("json");
         return ok ? Optional.of(response.jsonPath().getLong("id")) : Optional.empty();
     }
 
     public List<Account> accounts(long customerId) {
-        return rows(client.request().pathParam("customerId", customerId).get("/customers/{customerId}/accounts"))
+        return rows(client.send(request -> request.pathParam("customerId", customerId).get("/customers/{customerId}/accounts")))
                 .stream().map(ParaBankApi::toAccount).toList();
     }
 
@@ -43,7 +46,7 @@ public final class ParaBankApi {
     }
 
     public Account account(long accountId) {
-        Response response = client.request().pathParam("accountId", accountId).get("/accounts/{accountId}");
+        Response response = client.send(request -> request.pathParam("accountId", accountId).get("/accounts/{accountId}"));
         response.then().statusCode(200);
         return toAccount(response.jsonPath(MONEY).getMap("$"));
     }
@@ -53,7 +56,7 @@ public final class ParaBankApi {
     }
 
     public List<Transaction> transactions(long accountId) {
-        return rows(client.request().pathParam("accountId", accountId).get("/accounts/{accountId}/transactions"))
+        return rows(client.send(request -> request.pathParam("accountId", accountId).get("/accounts/{accountId}/transactions")))
                 .stream().map(ParaBankApi::toTransaction).toList();
     }
 
@@ -62,11 +65,37 @@ public final class ParaBankApi {
      * so money can be moved between different customers (see guide 09).
      */
     public String transfer(long fromAccount, long toAccount, BigDecimal amount) {
-        return client.request()
-                .queryParam("fromAccountId", fromAccount)
-                .queryParam("toAccountId", toAccount)
-                .queryParam("amount", amount.toPlainString())
-                .post("/transfer")
+        return client.send(request -> request
+                        .queryParam("fromAccountId", fromAccount)
+                        .queryParam("toAccountId", toAccount)
+                        .queryParam("amount", amount.toPlainString())
+                        .post("/transfer"))
+                .then().statusCode(200)
+                .extract().asString();
+    }
+
+    /**
+     * {@code POST /billpay}: pays {@code payee} (sent as JSON) from {@code fromAccount}. Debits the payer only;
+     * the payee counts as an external company. (The UI's Bill Pay goes through {@code services_proxy}, which
+     * confirms but never debits - a ParaBank defect; this direct endpoint works.)
+     */
+    public String billPay(long fromAccount, ParaBankUser payee, BigDecimal amount) {
+        Map<String, Object> address = new LinkedHashMap<>();
+        address.put("street", payee.street());
+        address.put("city", payee.city());
+        address.put("state", payee.state());
+        address.put("zipCode", payee.zipCode());
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("name", payee.fullName());
+        body.put("address", address);
+        body.put("phoneNumber", payee.phone());
+        body.put("accountNumber", payee.accountNumber());
+        return client.send(request -> request
+                        .queryParam("accountId", fromAccount)
+                        .queryParam("amount", amount.toPlainString())
+                        .contentType(ContentType.JSON)
+                        .body(body)
+                        .post("/billpay"))
                 .then().statusCode(200)
                 .extract().asString();
     }

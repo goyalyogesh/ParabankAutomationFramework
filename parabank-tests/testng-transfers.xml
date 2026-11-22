@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Transfers (browser) + REST API checks (needs registered customers in Excel): mvn -pl parabank-tests test -DsuiteXmlFile=testng-transfers.xml -->
+<suite name="ParaBank transfers" verbose="1">
+    <test name="3 - Transfers (browser, parallel)">
+        <classes>
+            <class name="io.github.thegoyalyogesh.qa.parabank.runners.TransferRunner"/>
+        </classes>
+    </test>
+    <test name="4 - REST API checks (sequential)">
+        <classes>
+            <class name="io.github.thegoyalyogesh.qa.parabank.runners.ApiRunner"/>
+        </classes>
+    </test>
+</suite>

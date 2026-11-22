@@ -1,0 +1,56 @@
+@transfers
+Feature: Money transfers
+  Transfers come from testdata/ParaBankData.xlsx, sheet "Transfers"; results are written back to the same rows.
+  Every balance is checked through the REST API with exact decimal amounts.
+  Browser scenarios run in parallel and each uses its own customers; @api scenarios run afterwards, one at a time.
+
+  @ownTransfer
+  Scenario Outline: <transferId> - customer moves money into a new savings account
+    Given transfer "<transferId>" from the Transfers sheet
+    And the paying customer is logged in
+    When the customer opens a new "SAVINGS" account funded from the main account
+    Then exactly one new account appears in the customer's account list
+    When the customer transfers the amount from the main account to the new account
+    Then the transfer is confirmed on screen
+    And both balances change by exactly the amount
+    And the new account's activity shows "Funds Transfer Received" for the amount
+
+    Examples:
+      | transferId |
+      | T01        |
+      | T02        |
+      | T03        |
+
+  @billPay
+  Scenario Outline: <transferId> - customer pays another customer through Bill Pay
+    Given transfer "<transferId>" from the Transfers sheet
+    And the paying customer is logged in
+    When the customer pays the other customer through Bill Pay
+    Then the payment to the other customer is confirmed on screen
+    And the payer's balance goes down by exactly the amount
+    And the payee's balance does not change, because Bill Pay treats the payee as an external company
+    And the payer's transactions include the bill payment
+
+    @knownDefect
+    Examples: Known defect - the UI shows "Bill Payment Complete" but never debits the payer (its services_proxy call does nothing; the REST endpoint works, see B03)
+      | transferId |
+      | B01        |
+      | B02        |
+
+  @apiBillPay @api
+  Scenario Outline: <transferId> - customer pays another customer through the REST Bill Pay endpoint
+    Given transfer "<transferId>" from the Transfers sheet
+    When the paying customer pays the other customer through the REST Bill Pay endpoint
+    Then the payer's balance goes down by exactly the amount
+    And the payee's balance does not change, because Bill Pay treats the payee as an external company
+    And the payer's transactions include the bill payment
+
+    Examples:
+      | transferId |
+      | B03        |
+
+  @apiTransfer @api
+  Scenario: Chain of transfers between different customers through the REST API, in order
+    Given the CHAIN transfers from the Transfers sheet are queued in sheet order
+    When the queue is processed through the REST API
+    Then every account's balance changed by its expected net amount

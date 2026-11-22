@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 <!--
-  The two <test> blocks run one after the other (login needs registered customers).
+  The <test> blocks run one after the other (login and transfers need registered customers).
   Inside each block, scenarios run in parallel: thread count = -Dthreads (default 3, see pom.xml).
   Run: mvn -pl parabank-tests test [-Dthreads=5] [-Dbrowser=firefox] [-Dheadless=true]
 -->
@@ -14,6 +14,16 @@
     <test name="2 - Login and Selenium 4 features">
         <classes>
             <class name="io.github.thegoyalyogesh.qa.parabank.runners.LoginRunner"/>
+        </classes>
+    </test>
+    <test name="3 - Transfers (browser, parallel)">
+        <classes>
+            <class name="io.github.thegoyalyogesh.qa.parabank.runners.TransferRunner"/>
+        </classes>
+    </test>
+    <test name="4 - REST API checks (sequential)">
+        <classes>
+            <class name="io.github.thegoyalyogesh.qa.parabank.runners.ApiRunner"/>
         </classes>
     </test>
 </suite>
