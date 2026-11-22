@@ -69,6 +69,7 @@ public final class MavenRunExecutor implements RunExecutor {
 
     List<String> command(int run, BrowserChoice browser, List<ScenarioResult> onlyScenarios) {
         List<String> command = new ArrayList<>(List.of(mavenCommand, "-B", "test",
+                "-Dui.engine=" + browser.engine(),
                 "-Dbrowser=" + browser.browser(),
                 "-Dheadless=" + browser.headless(),
                 "-Dreport.title=Run " + run + " - " + browser.label()));

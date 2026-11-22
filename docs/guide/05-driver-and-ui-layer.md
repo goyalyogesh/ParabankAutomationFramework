@@ -27,7 +27,7 @@ test runners reuse threads; a leftover driver would leak into the next test.
 
 ## Locator strings
 `id=…`, `name=…`, `css=…`, `xpath=…`, `link=…`. Parsed once by `Locator.parse` with clear error messages.
-Strings (not `By`) keep page objects free of Selenium, so Plan 07 can add a `PlaywrightUiDriver`.
+Strings (not `By`) keep page objects free of Selenium, so Plan 07 could add a `PlaywrightUiDriver` without touching a page (done: guide 13).
 
 ## Waiting strategy
 Only **explicit waits** (`WebDriverWait`), never implicit waits — mixing both causes unpredictable delays.

@@ -11,7 +11,7 @@ Still below 85%? One more run on a third browser, then stop. Keep a report per r
 mvn -q install -DskipTests                       # once: core + tests compiled and installed
 mvn -pl parabank-tests exec:java -Dheadless=true
 ```
-Options: `-Dthreshold=85`, `-Dretry.maxRuns=3`, `-Dbrowser.rotation=chrome,firefox,chrome-headless`, `-Dthreads=3`.
+Options: `-Dthreshold=85`, `-Dretry.maxRuns=3`, `-Dbrowser.rotation=chrome,firefox,playwright:chrome` (entry syntax `[engine:]browser[-headless]`, guide 13), `-Dthreads=3`.
 Exit code: 0 if the threshold is met, non-zero otherwise (so Jenkins marks the build red).
 
 Output:
@@ -42,7 +42,7 @@ RetryOrchestrator.main
 | `CucumberJsonReader` | Cucumber JSON → results. Passed only if every hook and step passed (a failing `@Before` is a failure too) |
 | `RunHistory` | every attempt of every scenario; cumulative pass rate; retry candidates; "passed on retry" |
 | `ThresholdPolicy` | the decision "another run?" (a record with validation in the compact constructor) |
-| `BrowserChoice` | parses `chrome-headless` into (chrome, headless=true) |
+| `BrowserChoice` | parses `chrome-headless` into (selenium, chrome, headless=true) and `playwright:chrome` into (playwright, chrome) |
 | `RunExecutor` | interface: "run these scenarios on this browser". Lets the loop be unit-tested with a fake |
 | `MavenRunExecutor` | the real executor: `ProcessBuilder("mvn", "test", ...)` |
 | `CombinedReport` | static HTML, no libraries, escapes scenario names |

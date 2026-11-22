@@ -6,9 +6,9 @@ pipeline {
     parameters {
         string(name: 'THREADS', defaultValue: '3', description: 'Parallel scenarios per block')
         string(name: 'THRESHOLD', defaultValue: '85', description: 'Pass rate (%) needed; below it, failed scenarios are retried')
-        string(name: 'BROWSER_ROTATION', defaultValue: 'chrome,firefox,chrome-headless', description: 'Browser for run 1, 2, 3')
+        string(name: 'BROWSER_ROTATION', defaultValue: 'chrome,firefox,playwright:chrome', description: 'Browser for run 1, 2, 3 ([engine:]browser[-headless])')
         booleanParam(name: 'HEADLESS', defaultValue: true, description: 'No browser windows (CI default)')
-        booleanParam(name: 'DEMO_RETRY', defaultValue: false, description: 'Fail 6 login scenarios in run 1 on purpose to show the retry')
+        booleanParam(name: 'DEMO_RETRY', defaultValue: false, description: 'Fail 6 login scenarios in runs 1 and 2 on purpose, so run 3 (Playwright) shows the retry')
     }
 
     options {
@@ -45,7 +45,7 @@ pipeline {
             steps {
                 sh 'mkdir -p "$(dirname "$TESTDATA_FILE")"'
                 script {
-                    def demo = params.DEMO_RETRY ? '"-Dretry.demo.injectFailure=customer U0[1-6] can log in and out"' : ''
+                    def demo = params.DEMO_RETRY ? '"-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2' : ''
                     sh """mvn -B -pl parabank-tests exec:java \
                         -Dheadless=${params.HEADLESS} \
                         -Dthreads=${params.THREADS} \

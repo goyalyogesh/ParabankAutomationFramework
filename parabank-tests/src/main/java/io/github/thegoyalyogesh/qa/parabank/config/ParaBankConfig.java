@@ -2,6 +2,8 @@ package io.github.thegoyalyogesh.qa.parabank.config;
 
 import io.github.thegoyalyogesh.qa.core.config.ConfigReader;
 import io.github.thegoyalyogesh.qa.core.driver.BrowserType;
+import io.github.thegoyalyogesh.qa.core.ui.UiEngine;
+import io.github.thegoyalyogesh.qa.core.ui.UiOptions;
 
 import java.nio.file.Path;
 import java.time.Duration;
@@ -31,6 +33,21 @@ public final class ParaBankConfig {
 
     public BrowserType browser() {
         return BrowserType.from(config.get("browser", "chrome"));
+    }
+
+    public UiEngine uiEngine() {
+        return UiEngine.from(config.get("ui.engine", "selenium"));
+    }
+
+    /** Engine, browser, headless and timeout for {@code UiSession.start}. */
+    public UiOptions uiOptions() {
+        return new UiOptions(uiEngine(), browser(), headless(), timeout(),
+                Path.of(config.get("playwright.browsers.path", "../tools/playwright")));
+    }
+
+    /** {@code CHROME} or {@code PLAYWRIGHT-CHROME}: written to Excel so a row shows which engine produced it. */
+    public String runLabel() {
+        return uiOptions().label();
     }
 
     public boolean headless() {

@@ -36,7 +36,7 @@ public class RegistrationSteps {
         result = service.register(ctx.currentUser());
         ctx.setCurrentUser(result.user());
         // Write back immediately, so generated credentials are never lost even if a later check fails.
-        ctx.repository().recordRegistration(result, ctx.config().browser().name());
+        ctx.repository().recordRegistration(result, ctx.config().runLabel());
         ctx.markResultRecorded();
         UserRegistry.register(result.user());
     }

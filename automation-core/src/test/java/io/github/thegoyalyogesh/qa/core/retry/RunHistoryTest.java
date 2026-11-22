@@ -64,6 +64,18 @@ public class RunHistoryTest {
     }
 
     @Test
+    public void browserRotationParsesOptionalEnginePrefix() {
+        assertThat(BrowserChoice.rotation("chrome,playwright:chrome-headless, PLAYWRIGHT:firefox", false)).containsExactly(
+                new BrowserChoice("selenium", "chrome", false),
+                new BrowserChoice("playwright", "chrome", true),
+                new BrowserChoice("playwright", "firefox", false));
+        assertThat(new BrowserChoice("chrome", false).engine()).isEqualTo("selenium");
+        assertThat(new BrowserChoice("chrome", false).label()).isEqualTo("chrome");
+        assertThat(new BrowserChoice("playwright", "chrome", true).label()).isEqualTo("playwright chrome (headless)");
+        assertThatThrownBy(() -> BrowserChoice.rotation(":chrome", false)).isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     public void knownDefectThatPassesIsReportedAsPossiblyFixed() {
         RunHistory history = new RunHistory("@knownDefect");
         history.record(1, "chrome", List.of(result("a", true),

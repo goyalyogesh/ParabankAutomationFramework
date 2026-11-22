@@ -235,7 +235,7 @@ public class TransferSteps {
             excelValues.put("FromAccount", String.valueOf(mainAccount));
             excelValues.put("ToAccount", otherAccount == 0 ? "" : String.valueOf(otherAccount));
             excelValues.put("Confirmation", confirmation);
-            excelValues.put("Browser", finished.getSourceTagNames().contains("@api") ? "REST API" : ctx.config().browser().name());
+            excelValues.put("Browser", finished.getSourceTagNames().contains("@api") ? "REST API" : ctx.config().runLabel());
             ctx.repository().recordTransfer(transfer.transferId(), excelValues);
         }
         if (chain != null) {

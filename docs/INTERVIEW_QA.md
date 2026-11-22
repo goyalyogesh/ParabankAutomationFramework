@@ -336,3 +336,33 @@ never retried, and the report flags them if they ever pass (fixed). The build st
 A: Overdraft without limit ($100,000 from $275), negative withdrawals/transfers accepted, a loan approved with a
 down payment bigger than the balance, a 500 HTML page for an invalid account type, a price-history endpoint
 that never works, and a contract mismatch on dates.
+
+## Playwright engine (Plan 07)
+
+**Q: How did you add Playwright without rewriting your page objects?**
+A: Pages only call a `UiDriver` interface with string locators like `id=username`. I wrote a second implementation,
+`PlaywrightUiDriver`, and a `UiSession` that starts whichever engine the config names (`ui.engine`). It's the
+Strategy pattern; the pages depend on an abstraction, not on Selenium (Dependency Inversion).
+
+**Q: How do you know both engines behave the same?**
+A: One abstract TestNG class, `UiDriverContractTest`, contains 13 checks against a local HTML page. A Selenium and a
+Playwright subclass only start and stop their engine. Both must pass the same 13 checks.
+
+**Q: What was different between the engines?**
+A: Playwright locators are strict (two matches throw) so I use `.first()` like Selenium's `findElement`; `#a.b` in CSS
+means id+class, so ids become `[id="a.b"]`; Playwright has pages, not window handles, so I give pages ids; there is
+no relative locator, so `typeBelow` measures bounding boxes itself; waits are built in for actions, and I wrote a
+small poll loop for "wait until text appears".
+
+**Q: Why use Playwright only for run 3?**
+A: By run 3 a scenario has already failed on Chrome and Firefox with Selenium. If it passes on Playwright, the problem
+is likely timing or the engine, not the site. If it fails on all three, it's very likely a real defect.
+
+**Q: Selenium or Playwright for a new project?**
+A: Playwright for a modern web app with no Safari requirement: auto-waiting, fast isolated contexts, tracing. Selenium
+when you need real Safari, a Grid or cloud vendor, or the team already knows it. With a `UiDriver` layer you can defer
+the choice.
+
+**Q: Is Playwright thread-safe?**
+A: No. Each TestNG thread gets its own Playwright, browser, context and page through a `ThreadLocal` in `UiSession`.
+They are closed in reverse order in `finally` blocks.

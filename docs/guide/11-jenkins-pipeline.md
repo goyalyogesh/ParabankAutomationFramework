@@ -37,7 +37,7 @@ ParaBank suite   mvn -pl parabank-tests exec:java -Dthreads -Dthreshold -Dbrowse
                  → non-zero exit if the pass rate is below the threshold → build FAILED
 post             archive reports/**, "Combined report" + "Run 1 Extent report" links on the build page
 ```
-Parameters: `THREADS` (3), `THRESHOLD` (85), `BROWSER_ROTATION` (chrome,firefox,chrome-headless), `HEADLESS` (true),
+Parameters: `THREADS` (3), `THRESHOLD` (85), `BROWSER_ROTATION` (chrome,firefox,playwright:chrome), `HEADLESS` (true),
 `DEMO_RETRY` (false: when true, 6 logins fail in run 1 on purpose to show the retry).
 
 The orchestrator forwards only known properties to each run. `-Dretry.passThrough=testdata.file` adds more without

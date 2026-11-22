@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.function.IntFunction;
 import java.util.stream.Stream;
 
 /**
@@ -15,13 +16,16 @@ import java.util.stream.Stream;
  * Command line (from the repository root, after {@code mvn install -DskipTests}):
  * <pre>
  * mvn -pl parabank-tests exec:java [-Dthreshold=85] [-Dretry.maxRuns=3]
- *     [-Dbrowser.rotation=chrome,firefox,chrome-headless] [-Dheadless=true] [-Dthreads=3]
- *     [-Dretry.passThrough=testdata.file] [-Dretry.demo.injectFailure=&lt;regex of scenario names to fail in run 1&gt;]
+ *     [-Dbrowser.rotation=chrome,firefox,playwright:chrome] [-Dheadless=true] [-Dthreads=3]
+ *     [-Dretry.passThrough=testdata.file] [-Dretry.demo.injectFailure=&lt;regex of scenario names to fail&gt;]
+ *     [-Dretry.demo.injectRuns=1]
  * </pre>
  */
 public final class RetryOrchestrator {
 
     public static final String KNOWN_DEFECT_TAG = "@knownDefect";
+    /** Run 1 Selenium Chrome, run 2 Selenium Firefox, run 3 Playwright on Chrome (requirement E4). */
+    public static final String DEFAULT_ROTATION = "chrome,firefox,playwright:chrome";
 
     /** System properties forwarded to every run, if set; more with {@code -Dretry.passThrough=key1,key2}. */
     private static final List<String> PASS_THROUGH = List.of("threads", "timeout.seconds", "app.url", "api.url", "suiteXmlFile");
@@ -86,6 +90,14 @@ public final class RetryOrchestrator {
                 .toList();
     }
 
+    /**
+     * Demo only: {@code -Dinject.failure=<pattern>} for runs 1..{@code runs}, so the retry path can be shown on a healthy
+     * site. With {@code runs=2} the injected scenarios reach run 3 (Playwright in the default rotation).
+     */
+    static IntFunction<List<String>> demoArguments(String pattern, int runs) {
+        return run -> pattern != null && run <= runs ? List.of("-Dinject.failure=" + pattern) : List.of();
+    }
+
     static void say(String format, Object... args) {
         System.out.println("[retry] " + String.format(Locale.ROOT, format, args));
     }
@@ -94,18 +106,14 @@ public final class RetryOrchestrator {
         ThresholdPolicy policy = new ThresholdPolicy(
                 Double.parseDouble(System.getProperty("threshold", "85")), Integer.getInteger("retry.maxRuns", 3));
         List<BrowserChoice> rotation = BrowserChoice.rotation(
-                System.getProperty("browser.rotation", "chrome,firefox,chrome-headless"), Boolean.getBoolean("headless"));
+                System.getProperty("browser.rotation", DEFAULT_ROTATION), Boolean.getBoolean("headless"));
         Path moduleDir = Path.of(System.getProperty("retry.moduleDir", ".")).toAbsolutePath().normalize();
         Path reportsDir = Path.of(System.getProperty("retry.reportsDir", moduleDir.resolve("reports").toString()))
                 .toAbsolutePath().normalize();
         List<String> passThrough = passThroughArguments(System.getProperties());
-        String injectFailure = System.getProperty("retry.demo.injectFailure");
-
         MavenRunExecutor executor = new MavenRunExecutor(moduleDir, reportsDir,
                 System.getProperty("maven.cmd", "mvn"), passThrough,
-                run -> run == 1 && injectFailure != null
-                        ? List.of("-Dinject.failure=" + injectFailure)
-                        : List.of());
+                demoArguments(System.getProperty("retry.demo.injectFailure"), Integer.getInteger("retry.demo.injectRuns", 1)));
         executor.cleanReports();
         RetryOrchestrator orchestrator = new RetryOrchestrator(policy, rotation, KNOWN_DEFECT_TAG, executor);
 

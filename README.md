@@ -39,7 +39,7 @@ mvn -q install -DskipTests
 mvn -pl parabank-tests exec:java -Dheadless=true        # run 1 on Chrome; below 85% → failed ones on Firefox, then headless Chrome
 mvn -pl parabank-tests exec:java -Dheadless=true "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out"   # demo: force a retry
 ```
-Options: `-Dthreshold=85 -Dretry.maxRuns=3 -Dbrowser.rotation=chrome,firefox,chrome-headless`. Known defects are
+Options: `-Dthreshold=85 -Dretry.maxRuns=3 -Dbrowser.rotation=chrome,firefox,playwright:chrome`. Known defects are
 excluded from the pass rate and never retried. Reports: `reports/run-N/` (Extent, Cucumber, screenshots, Maven log)
 and `reports/combined/index.html` (every scenario × run). Exit code non-zero if the threshold isn't met.
 See `docs/guide/10-retry-engine-and-reports.md`.

@@ -327,3 +327,13 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
 - API run 3: 26 scenarios, 19 pass, 7 `@knownDefect` fail; main balance −$8.50 per run.
 - Full suite with the retry engine (headless Chrome): **59 scenarios, 52 passed, 7 failed = the 7 API defects;
   100%, no retry.** The 5 UI known defects passed again (2nd clean run in a row) → still watched (user decision).
+
+## Plan 07 — Playwright engine (run 3)
+- `PlaywrightUiDriver` + `UiSession` + `UiEngine`/`UiOptions` in core; Playwright 1.64.0 (optional dependency).
+- One abstract contract test, two engines: 28/28 browser tests green on the first run. Core unit tests 75.
+- Rotation syntax `[engine:]browser[-headless]`; default `chrome,firefox,playwright:chrome`; `-Dui.engine` passed per run.
+  `retry.demo.injectRuns` lets the demo reach run 3.
+- Live: login 18/18 on Playwright (31 s). Full suite on Playwright: 59 executed, 51 passed, 7 API known defects + T03
+  (site served John Smith's session; passed alone) → 97.9%, SUCCESS.
+- The 5 UI known defects passed for the 3rd clean run in a row.
+

@@ -16,7 +16,7 @@ Each entry: what we decided, why, and what we rejected. Newest at the bottom.
 | D10 | Config precedence: file < environment variable < `-D` property | Same code runs locally and in Jenkins; CI overrides without editing files | Hard-coded values; separate code paths for CI |
 | D11 | Unique usernames `qa_<yyMMddHHmmss>_<seq>` (19 chars; see D30) | Public shared site; names must not collide with other people or parallel runs | Fixed names (fail on second run) |
 | D12 | `@knownDefect` tag for UI login-with-any-credentials bug | Tests stay honest (they fail), but don't trigger retries or hide in the 85% math | Asserting buggy behaviour (hides the defect) |
-| D13 | Run 3 = headless Chrome now; Playwright engine in Phase 2 | Deliver core value first; abstraction (D7) makes the switch a config change | Playwright in Phase 1 (+20–25% effort) |
+| D13 | Run 3 = headless Chrome now; Playwright engine in Phase 2 (done in Plan 07: D57) | Deliver core value first; abstraction (D7) makes the switch a config change | Playwright in Phase 1 (+20–25% effort) |
 | D14 | Cumulative pass % across runs | A test that passes on retry is counted as passed; matches common retry practice | Run-1-only pass % |
 | D15 | Reports: Extent Spark + Cucumber HTML per run + combined | Plain HTML, screenshots, opens anywhere and in Jenkins | Allure (needs CLI/plugin to view) |
 | D16 | Log4j2; core library depends on `log4j-api` only, test module adds `log4j-core` + `log4j-slf4j2-impl` | A library must not force a logging implementation on its users; the SLF4J bridge captures Selenium's logs | `System.out` (no levels/files); bundling log4j-core in the library |
@@ -60,3 +60,10 @@ Each entry: what we decided, why, and what we rejected. Newest at the bottom.
 | D54 | `ApiCoverageTest`: spec operations = implemented ∪ excluded | New/renamed endpoints or path typos fail fast in the unit suite | Manual coverage lists in docs |
 | D55 | Defect scenarios undo money movement inside the When step | Test data stays usable even though the assertion fails | `@After` cleanup (skipped data on crashes, harder to read) |
 | D56 | Amounts relative to the balance (`balance plus 1.00`, `max(balance, 0)`) | Works whatever the account holds; a fixed $100,000 probe overdrew a CI customer | Fixed large amounts |
+| D57 | Playwright as a second `UiDriver` implementation, chosen by `ui.engine` (Strategy pattern) | Requirement E4 with zero page/step changes; D7 paid off | Separate Playwright page objects (two copies of every page); Selenium-only run 3 |
+| D58 | One abstract contract test (`UiDriverContractTest`) run against every engine | Same 13 checks on both engines prove they are interchangeable; a new engine starts with a tiny subclass | Separate test classes per engine (they drift apart) |
+| D59 | Playwright single-element actions use `.first()` | Matches Selenium's `findElement`, so pages behave the same on both engines | Playwright strict mode (correct, but would break pages that rely on "first match") |
+| D60 | Playwright `chrome` = installed Google Chrome (`channel=chrome`), downloads skipped; Firefox downloaded into `tools/playwright` | No 150 MB download for the default run 3; nothing written outside the project | Playwright's bundled Chromium (download into the user cache) |
+| D61 | Rotation entry syntax `[engine:]browser[-headless]`, default `chrome,firefox,playwright:chrome` | One string still configures everything; old rotations keep working | Separate `engine.rotation` property (two lists that must stay in step) |
+| D62 | `retry.demo.injectRuns` (default 1) | Lets a demo reach run 3 on a healthy site to show the Playwright run | Breaking the site on purpose; a demo-only rotation |
+| D63 | Playwright 1.64.0, not 1.65.x | 1.65.x was under two weeks old when chosen; a month-old release has had its first fixes | Newest release |

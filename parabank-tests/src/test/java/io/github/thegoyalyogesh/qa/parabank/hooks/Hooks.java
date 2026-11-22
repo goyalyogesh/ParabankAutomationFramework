@@ -3,10 +3,9 @@ package io.github.thegoyalyogesh.qa.parabank.hooks;
 import io.cucumber.java.After;
 import io.cucumber.java.Before;
 import io.cucumber.java.Scenario;
-import io.github.thegoyalyogesh.qa.core.driver.DriverManager;
 import io.github.thegoyalyogesh.qa.core.report.ScreenshotUtil;
-import io.github.thegoyalyogesh.qa.core.ui.SeleniumUiDriver;
-import io.github.thegoyalyogesh.qa.parabank.config.ParaBankConfig;
+import io.github.thegoyalyogesh.qa.core.ui.UiOptions;
+import io.github.thegoyalyogesh.qa.core.ui.UiSession;
 import io.github.thegoyalyogesh.qa.parabank.context.TestContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,12 +40,11 @@ public class Hooks {
 
     @Before(value = "not @api", order = 0)
     public void startBrowser(Scenario scenario) {
-        ParaBankConfig config = ctx.config();
-        DriverManager.start(config.browser(), config.headless());
-        ctx.setUi(new SeleniumUiDriver(DriverManager.get(), config.timeout()));
-        scenario.log("Browser: " + config.browser() + (config.headless() ? " (headless)" : "")
-                + " | thread: " + Thread.currentThread().getName());
-        LOG.info("START  {} [{}]", scenario.getName(), config.browser());
+        UiOptions options = ctx.config().uiOptions();
+        ctx.setUi(UiSession.start(options));
+        scenario.log("Engine: " + options.engine() + " | browser: " + options.browser()
+                + (options.headless() ? " (headless)" : "") + " | thread: " + Thread.currentThread().getName());
+        LOG.info("START  {} [{}]", scenario.getName(), options.label());
     }
 
     /** @After hooks run from highest to lowest order: screenshot (100) → Excel (50) → quit (0). */
@@ -64,7 +62,7 @@ public class Hooks {
     public void recordRegistrationFailure(Scenario scenario) {
         if (scenario.isFailed() && !ctx.resultRecorded() && ctx.currentUser() != null) {
             ctx.repository().recordRegistrationFailure(ctx.currentUser().userId(),
-                    "Scenario failed, see report: " + scenario.getName(), ctx.config().browser().name());
+                    "Scenario failed, see report: " + scenario.getName(), ctx.config().runLabel());
         }
     }
 
@@ -72,13 +70,13 @@ public class Hooks {
     public void recordNegativeLoginResult(Scenario scenario) {
         if (ctx.loginCase() != null) {
             ctx.repository().recordLoginResult(ctx.loginCase().caseId(), scenario.isFailed() ? "FAIL" : "PASS",
-                    ctx.loginObservation(), ctx.config().browser().name());
+                    ctx.loginObservation(), ctx.config().runLabel());
         }
     }
 
     @After(order = 0)
     public void quitBrowser(Scenario scenario) {
-        DriverManager.quit();
+        UiSession.quit();
         LOG.info("FINISH {} -> {}", scenario.getName(), scenario.getStatus());
     }
 }
