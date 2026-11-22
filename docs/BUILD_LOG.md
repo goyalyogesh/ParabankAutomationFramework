@@ -132,3 +132,12 @@ currentWindow, windowHandles (Set), switchToWindow, closeCurrentWindow`.
 - Red (confirmed by temporarily removing the new code): `cannot find symbol: method typeBelow`.
 - Green: `SeleniumUiDriverBrowserTest` 9/9 in headless Chrome (relative locator typed into the field below,
   new tab opened, 2 distinct handles, tab closed, parent restored).
+
+### Task 3 — ScreenshotUtil and ExtentCucumberPlugin
+- `ScreenshotUtil.save(png, dir, name)` → `<name>_t<threadId>_<nanoTime>.png`, so parallel threads never overwrite files.
+- `ExtentCucumberPlugin` (a Cucumber `ConcurrentEventListener`): one Extent test per scenario, one line per step,
+  Base64 screenshots from `scenario.attach`, text from `scenario.log`, category "Known defect" for failed
+  `@knownDefect` scenarios. Runners in the same JVM that use the same path share one report
+  (`ConcurrentHashMap<Path, ExtentReports>`).
+- Tested by running a real mini Cucumber suite (`report-fixture/demo.feature`) through `io.cucumber.core.cli.Main`
+  and reading the produced HTML. Red: `cannot find symbol ExtentCucumberPlugin`. Green: 2/2.
