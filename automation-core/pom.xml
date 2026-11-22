@@ -33,6 +33,11 @@
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
         </dependency>
+        <!-- JSON parsing for the retry engine (reads Cucumber's JSON report) -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
         <!-- Optional: only projects that use the Cucumber/Extent/API helpers need these on their classpath -->
         <dependency>
             <groupId>io.cucumber</groupId>
