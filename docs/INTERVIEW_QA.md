@@ -545,3 +545,191 @@ production constructor uses the system clock and `SecureRandom`, and the test pa
 generated username `qa_261121183405_001` can be asserted exactly. `ApiClient` likewise takes a `Sleeper` (a functional
 interface): `ApiClientRetryTest` passes `waits::add`, so the 429 retry records the waits it *would* do (7 s, 7 s from
 `Retry-After`) instead of sleeping.
+
+## Multithreading and parallel execution: the question bank
+
+The questions interviewers ask most about threads and parallel runs, grouped from basics to "what if". Each answer
+says where it happens in this framework. Related answers earlier in this doc: Excel write-back (Excel section),
+`ThreadLocal` driver (Browser section), Cucumber + TestNG parallel, and the Concurrency table above.
+
+### A. Java threading basics (asked to check you understand what you use)
+
+**Q: Process vs thread?**
+A: A process has its own memory; threads inside one process share the heap. My framework uses both: the scenarios of
+one run are **threads** in one JVM (they share static fields, so shared state must be protected), while the retry
+engine starts every run as a separate **process** (`MavenRunExecutor`, `ProcessBuilder` → `mvn test`), so nothing
+leaks from run 1 into run 2.
+
+**Q: Concurrency vs parallelism?**
+A: Concurrency is several tasks in progress at once (they may take turns on one core); parallelism is them really
+running at the same time on several cores. Three browser scenarios are both: three threads, and the browsers are
+separate OS processes working at the same time.
+
+**Q: What is a race condition? Give a real one.**
+A: The result depends on which thread gets there first. Real one here: two threads each open the Excel file, change
+a different row, and save; the second save overwrites the first, so one customer's result disappears (a "lost
+update"). Fixed with one lock around read-modify-write in `ExcelUtil`. Proof: with the lock removed the concurrency
+test failed 3 out of 3 times.
+
+**Q: What is a deadlock and how do you avoid one?**
+A: Two threads each hold a lock the other needs, so both wait forever. I avoid it by design: there is only **one**
+lock in the framework (the Excel `WRITE_LOCK`), it is never held while acquiring another lock, and it is always
+released in `finally`. Other shared state uses lock-free tools (`ConcurrentHashMap`, `AtomicInteger`, `ThreadLocal`).
+
+**Q: `synchronized` vs `ReentrantLock`?**
+A: Both give mutual exclusion and memory visibility. `ReentrantLock` adds `tryLock()` with a timeout, fairness, and
+interruptible waiting, but you must `unlock()` in `finally` yourself. I used `ReentrantLock` in `ExcelUtil` as one
+explicit static guard for every method that writes the file; `synchronized` would also have worked.
+
+**Q: What does `volatile` do? Where did you use it?**
+A: It makes a write by one thread visible to other threads (no stale cached value). It does **not** make `count++`
+atomic. Used in `ApiClientRetryTest`: the test thread sets `rateLimitedAnswers` and `retryAfter`, and the JDK
+`HttpServer`'s own thread reads them when it answers. Without `volatile` the server thread might not see the new
+values.
+
+**Q: `volatile` vs `AtomicInteger`?**
+A: `volatile` = visibility only. `AtomicInteger` = visibility **and** atomic read-modify-write (compare-and-set).
+`TestDataGenerator` uses `AtomicInteger.incrementAndGet()` for the username sequence: with a plain or volatile `int`
+two threads could get the same number and create the same username. Unit test: 500 names generated from a
+`parallel()` stream are all unique.
+
+**Q: `HashMap`, `Collections.synchronizedMap`, `ConcurrentHashMap`?**
+A: `HashMap` is unsafe with concurrent writers (lost entries, broken internal state). `synchronizedMap` locks the
+whole map for every call. `ConcurrentHashMap` locks only small parts and has atomic helpers such as
+`computeIfAbsent`. Used in `UserRegistry` (3 registration threads add customers; `UserRegistryTest` registers 200
+from a parallel stream and checks all 200 are there) and `ExtentCucumberPlugin` (one report node per scenario).
+
+**Q: Which other thread-safe collections do you know?**
+A: `CopyOnWriteArrayList` (many reads, rare writes, e.g. listeners), `ConcurrentLinkedQueue`, `BlockingQueue`
+(producer/consumer), `ConcurrentSkipListMap` (sorted). My `ArrayDeque` for the transfer chain is **not** thread-safe,
+and doesn't need to be: each scenario has its own instance (PicoContainer creates new objects per scenario).
+
+**Q: `ExecutorService`, `Runnable` vs `Callable`, `Future`?**
+A: An `ExecutorService` is a thread pool: you submit tasks instead of creating threads. `Runnable` returns nothing,
+`Callable` returns a value and may throw. `Future.get(timeout)` waits for the result and re-throws the task's
+exception. In `ExcelUtilUpdateTest`: `Executors.newFixedThreadPool(5)`, 10 updates submitted, `future.get(60, SECONDS)`
+on each, then `pool.shutdown()` in `finally`, then assert that all 10 rows were saved.
+
+**Q: Why `Thread.currentThread().interrupt()` in a `catch (InterruptedException)`?**
+A: Catching the exception clears the thread's "interrupted" flag. Setting it again tells the caller that someone asked
+this thread to stop, instead of silently swallowing the request. Done in `ApiClient` (retry wait), `SiteGuard` (rate
+limit wait) and `MavenRunExecutor` (waiting for a run).
+
+**Q: Any trap with parallel streams?**
+A: They run on the shared ForkJoin common pool, so the lambda must not touch unsafe shared state, and the order is not
+guaranteed unless you use `forEachOrdered`/collect. I use them only in tests, to hammer thread-safe code
+(`UserRegistryTest`, `TestDataGeneratorTest`), never in the framework itself.
+
+### B. TestNG parallel execution
+
+**Q: What `parallel` modes does TestNG have?**
+A: `parallel="methods" | "classes" | "tests" | "instances"` with `thread-count` on the suite, plus parallel data
+providers: `@DataProvider(parallel = true)` with `data-provider-thread-count`. I use only the data-provider kind,
+because each Cucumber scenario is one data-provider row.
+
+**Q: `thread-count` vs `data-provider-thread-count`?**
+A: `thread-count` sizes the pool for `parallel` methods/classes/tests; `data-provider-thread-count` sizes the pool for
+the rows of a parallel data provider (TestNG default 10). Mine comes from `-Dthreads` (default 3).
+
+**Q: How exactly do you set the thread count?**
+A: `mvn test -Dthreads=5`. Surefire passes it to TestNG as `dataproviderthreadcount`. Found later: an IDE (Eclipse's
+TestNG plugin) does **not** pass it, so TestNG used its default of 10 browsers. Fix (D66): `RetryAwareCucumberTests`
+has a `@BeforeClass` that calls `ScenarioThreads.apply(context)`, which sets the suite's data-provider thread count
+from `-Dthreads`. Unit test `ScenarioThreadsTest` starts TestNG directly, measures the maximum number of rows running
+at once with an `AtomicInteger`, and expects exactly 2 for `-Dthreads=2`.
+
+**Q: Some tests must run before others (register before login). How, with parallel execution?**
+A: Ordering **between** groups, parallelism **inside** them. `testng-parabank.xml` has four `<test>` blocks and no
+`parallel` attribute on the suite, so the blocks run one after the other: registration → login → transfers → API.
+Inside a block the scenarios run in parallel. I avoid `dependsOnMethods` between scenarios: it hides which test is
+broken and makes tests impossible to run alone.
+
+**Q: Why is the API block sequential?**
+A: Its scenarios reuse the same customers and check balances. Run in parallel, one test's transfer would change
+another test's expected balance. `ApiRunner` therefore keeps the normal (non-parallel) data provider.
+
+**Q: Are `@BeforeSuite`/`@BeforeClass` run once per thread?**
+A: No, once per suite/class, on one thread. Per-thread setup (a browser) belongs in per-scenario hooks: Cucumber
+`@Before` starts the browser and `@After` closes it, on the scenario's own thread.
+
+**Q: How do you choose the number of threads?**
+A: Limited by the slowest resource, not by the number of tests: CPU/RAM per browser (about one browser per core
+locally), and what the application allows. Here the public site rate-limits (Cloudflare 1015), so 3 is the default;
+on a busy day 2. More threads past the limit makes the run **slower** (waits and retries), not faster.
+
+### C. Selenium / Playwright in parallel
+
+**Q: Is `WebDriver` thread-safe?**
+A: No. One driver must only be used by one thread. So each scenario thread gets its own browser through a
+`ThreadLocal` (`DriverManager`, `UiSession`).
+
+**Q: What goes wrong with `public static WebDriver driver`?**
+A: All threads share one variable: scenario B's `driver = new ChromeDriver()` replaces A's, A then types into B's
+browser, one browser is never closed, and failures look random. It's the most common parallel bug in Selenium
+frameworks.
+
+**Q: Your `ThreadLocal` driver, what are the rules?**
+A: Set at scenario start, read through `get()` (which fails clearly with the thread name if nothing was started),
+and always `quit()` + `remove()` in `finally`. `start()` refuses to start a second browser on the same thread, so a
+leaked browser shows up immediately instead of as "session not found" much later.
+
+**Q: Is Playwright thread-safe?**
+A: Its objects are not; Playwright's rule is one `Playwright` instance per thread. `UiSession` launches a separate
+Playwright + browser per scenario thread, exactly like the Selenium side.
+
+**Q: How do you avoid screenshots and reports overwriting each other?**
+A: Screenshot files are named `<scenario>_t<threadId>_<nanoTime>.png` (`ScreenshotUtil`); Extent nodes are kept per
+scenario in a `ConcurrentHashMap`; every log line shows the thread name (`[%t]` in the Log4j2 pattern), and `Hooks`
+logs which browser and thread each scenario got.
+
+**Q: How would you run on many machines (Selenium Grid)?**
+A: Not used here, everything runs locally. The change would be one place: `DriverFactory` creates a
+`RemoteWebDriver(gridUrl, options)` instead of `ChromeDriver`; the `ThreadLocal`, pages and steps stay the same.
+Then threads can go higher, because the browsers no longer use local CPU. Docker Selenium images or a cloud grid
+provide the nodes.
+
+**Q: Cross-browser in parallel?**
+A: Either one run per browser at the same time (separate Jenkins stages or processes with `-Dbrowser=...`), or a
+browser parameter per test. I chose browser **rotation for retries** (Chrome → Firefox → Playwright) because the goal
+was to tell real failures from browser-specific ones, not to double the load on a rate-limited site.
+
+### D. Test design for parallel runs
+
+**Q: What makes a test safe to run in parallel?**
+A: It shares nothing that it changes: its own browser, its own data, no static mutable fields, no order dependency.
+Here every parallel scenario owns its customers (data partitioning), per-scenario objects come from PicoContainer
+(`TestContext`), and truly shared things are protected (see the Concurrency table).
+
+**Q: How do step classes share data without statics?**
+A: PicoContainer creates one `TestContext` per scenario and injects it into every step and hook class of that
+scenario. Statics would be shared by all three threads.
+
+**Q: A test passes alone but fails in parallel. How do you debug it?**
+A: 1) Run it with `-Dthreads=1`; if it passes, it's an interaction, not the test logic. 2) Look for shared state:
+statics, a shared file, the same test user, the same account. 3) Read the log by thread name (`[%t]`) to see what
+the other threads did at that moment. 4) Check the screenshot: a real case here showed "Welcome John Smith" on a
+Playwright run, a different customer's session, which pointed to the site, not the framework. 5) Prove the fix with a
+test that fails without it (like the Excel lock test).
+
+**Q: Does parallel execution make tests flaky?**
+A: Only if they share something. Most "parallel flakiness" is shared data or a static driver. The rest is the
+environment under load (here: rate limiting), which is why the framework detects 429/1015, waits, retries a limited
+number of times, then fails with a clear message.
+
+### E. Scenario ("tweak") questions
+
+**Tweak: Run time is too long. Do you just raise threads to 10?**
+A: No. Measure first: more threads hit the site's rate limit and slow everything down. Better options: cut UI steps
+that the API can do (create data through REST), run the API suite separately, or move browsers to a grid.
+
+**Tweak: Two Jenkins builds run at once on the same agent.**
+A: Separate JVMs, so the in-JVM lock doesn't protect the shared Excel file or `reports/`. My Jenkins has 1 executor
+(one build at a time); otherwise each build needs its own workspace and its own workbook copy.
+
+**Tweak: Login scenarios start before registration finished. Why could that happen?**
+A: If someone put `parallel="tests"` on the suite, the `<test>` blocks would run at the same time. Keep ordering
+between blocks and parallelism inside them.
+
+**Tweak: Ten parallel tests all need the "same" premium user.**
+A: Give each its own user (create through the API in a before-hook), or make the shared user read-only for them, or
+put those tests in one sequential block, as I did with the API block.
