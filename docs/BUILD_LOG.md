@@ -146,3 +146,11 @@ currentWindow, windowHandles (Set), switchToWindow, closeCurrentWindow`.
 `core/api/ApiClient`: one shared Rest Assured `RequestSpecification` (base URI + `Accept: application/json`);
 `request()` logs request/response only when a validation fails. Red → green (1/1). Core installed to `~/.m2`
 with 36 default tests passing (Rest Assured 6 / Groovy 5 loads fine on JDK 27).
+
+### Task 5 — parabank-tests setup, config, model
+- `parabank-tests/pom.xml`: Cucumber (TestNG runner + PicoContainer), Rest Assured, Extent, Log4j2; Surefire picks the
+  suite with `-DsuiteXmlFile` (default `testng-parabank.xml`) and the thread count with `-Dthreads` (default 3).
+- `ParaBankConfig` (typed settings), records `ParaBankUser`, `LoginCase`, `RegistrationResult`, enum `RegistrationStatus`.
+- Red: `package ...parabank.model does not exist`. Green: `ParaBankUserTest` 3/3.
+- **Gotcha found:** Maven printed "dependency version is missing" because the *parent* POM in `~/.m2` was the old one
+  (`mvn -pl automation-core install` does not reinstall the parent). Fix: `mvn install -N` (or build with `-am`).
