@@ -115,7 +115,10 @@ public final class RetryOrchestrator {
         say("Combined report: %s", report);
         Stream.of(history.passedOnRetry().isEmpty() ? null : "Passed only on retry: " + history.passedOnRetry(),
                         history.retryCandidates().isEmpty() ? null : "Still failing: " + history.retryCandidates(),
-                        "Known defects (not counted): " + history.knownDefects().size())
+                        "Known defects (not counted): " + history.knownDefects().size(),
+                        history.knownDefectsThatPassed().isEmpty() ? null
+                                : "Known defects that PASSED (fixed? verify and remove the tag): "
+                                + history.knownDefectsThatPassed().stream().map(ScenarioResult::name).toList())
                 .filter(line -> line != null)
                 .forEach(line -> say("%s", line));
         if (!policy.met(history)) {

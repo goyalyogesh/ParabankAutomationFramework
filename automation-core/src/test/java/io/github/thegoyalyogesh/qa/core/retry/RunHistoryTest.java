@@ -62,4 +62,14 @@ public class RunHistoryTest {
         assertThat(new BrowserChoice("chrome", true).label()).isEqualTo("chrome (headless)");
         assertThatThrownBy(() -> BrowserChoice.rotation(" , ", false)).isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    public void knownDefectThatPassesIsReportedAsPossiblyFixed() {
+        RunHistory history = new RunHistory("@knownDefect");
+        history.record(1, "chrome", List.of(result("a", true),
+                result("kd-still-broken", false, "@knownDefect"), result("kd-fixed", true, "@knownDefect")));
+
+        assertThat(history.knownDefectsThatPassed()).extracting(ScenarioResult::id).containsExactly("kd-fixed");
+        assertThat(history.passRate()).as("still not counted").isEqualTo(100.0);
+    }
 }

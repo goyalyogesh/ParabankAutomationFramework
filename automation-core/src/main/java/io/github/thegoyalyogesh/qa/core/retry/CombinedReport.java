@@ -88,6 +88,14 @@ public final class CombinedReport {
             html.append("</table></div>");
         });
 
+        List<ScenarioResult> fixed = history.knownDefectsThatPassed();
+        if (!fixed.isEmpty()) {
+            html.append("<h2>Known defects that passed</h2><p class=\"muted\">Tagged as known defects but passed: ")
+                    .append("the bug may be fixed. Verify, then remove the tag so the scenario counts again.</p><ul>");
+            fixed.forEach(s -> html.append("<li>").append(escape(s.name())).append(" <span class=\"muted\">")
+                    .append(escape(s.id())).append("</span></li>"));
+            html.append("</ul>");
+        }
         html.append("<h2>Known defects</h2><p class=\"muted\">Fail on purpose: the application has a bug. ")
                 .append("Not counted in the pass rate and never retried.</p><ul>");
         history.knownDefects().forEach(s -> html.append("<li>").append(escape(s.name())).append(" <span class=\"muted\">")

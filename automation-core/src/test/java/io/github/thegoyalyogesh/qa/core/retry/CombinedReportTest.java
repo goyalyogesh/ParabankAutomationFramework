@@ -18,7 +18,8 @@ public class CombinedReportTest {
         history.record(1, "chrome", List.of(
                 new ScenarioResult("f:1", "Login", "U01 <logs> in", Set.of(), true),
                 new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), false),
-                new ScenarioResult("f:3", "Login", "N01 rejected", Set.of("@knownDefect"), false)));
+                new ScenarioResult("f:3", "Login", "N01 rejected", Set.of("@knownDefect"), false),
+                new ScenarioResult("f:4", "Pay", "B01 pays", Set.of("@knownDefect"), true)));
         // the same scenario reported twice in one run (e.g. by two runners) must not break the report
         history.record(2, "firefox", List.of(new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), true),
                 new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), true)));
@@ -36,6 +37,7 @@ public class CombinedReportTest {
                 .contains("U01 &lt;logs&gt; in")
                 .contains("Passed on retry")
                 .contains("Known defect")
-                .contains("N01 rejected");
+                .contains("N01 rejected")
+                .contains("Known defects that passed", "B01 pays");
     }
 }

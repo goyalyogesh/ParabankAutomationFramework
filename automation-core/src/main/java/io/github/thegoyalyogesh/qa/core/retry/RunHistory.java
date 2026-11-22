@@ -76,6 +76,14 @@ public final class RunHistory {
         return scenarios.values().stream().filter(s -> s.hasTag(knownDefectTag)).toList();
     }
 
+    /**
+     * Known defects that passed in some run: the bug may be fixed (or behaves differently now). Still not counted,
+     * but worth a look: a stale known-defect tag would hide the bug if it comes back.
+     */
+    public List<ScenarioResult> knownDefectsThatPassed() {
+        return knownDefects().stream().filter(s -> passedInAnyRun(s.id())).toList();
+    }
+
     /** Failed in their first run and passed later: flaky or environment-dependent, worth investigating. */
     public List<String> passedOnRetry() {
         return attempts.entrySet().stream()
