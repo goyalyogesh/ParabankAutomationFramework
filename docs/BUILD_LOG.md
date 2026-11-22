@@ -315,3 +315,5 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
   exactly 6, all passed → 100%, SUCCESS. **All 5 known defects passed** (no rate limit this time).
 - Note: unit tests of the retry engine print `[retry]` lines too, so the Jenkins console shows a few fake
   "Run 1 done" lines from the Unit tests stage (timestamps of that stage). Real ones follow in the suite stage.
+- **Decision (user, 2026-11-22):** keep the 5 `@knownDefect` tags and watch more clean runs; remove them (and record
+  the fix in guides 08/09) once they keep passing. The report flags them as "Known defects that passed" meanwhile.
