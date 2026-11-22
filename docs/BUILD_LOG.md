@@ -48,3 +48,15 @@ first, then an atomic rename.
 **Commands and results**
 - Red: `cannot find symbol ExcelUtil`. Green: `Tests run: 5, Failures: 0`. No Log4j warning, because
   `log4j-core` is on the test classpath (decision D16).
+
+### Task 4 — ExcelUtil: thread-safe write-back
+**What was built**
+`ExcelUtil.updateRow(file, sheet, keyColumn, keyValue, updates)`: finds the row (e.g. `UserId=U03`), writes the
+values, appends unknown columns to the header. One `ReentrantLock` serialises the read-modify-write cycle.
+
+**Commands and results**
+- Red: `cannot find symbol: method updateRow(...)`. Green: `Tests run: 10, Failures: 0` (read + update tests).
+- **Experiment:** lock removed → `concurrentUpdatesAreAllPersisted` failed 3/3 runs
+  (`UncheckedIOException: Cannot update Excel file`). Lock restored → all green. Proof the test is meaningful.
+
+**Docs**: guide 04 (with the experiment), Excel section of `INTERVIEW_QA.md`.

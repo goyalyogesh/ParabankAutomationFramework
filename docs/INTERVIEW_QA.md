@@ -19,3 +19,33 @@ A: Don't put it there. Read it from an environment variable that Jenkins fills f
 **Q: Why return `Optional` from `find`?**
 A: It forces the caller to decide what happens when the value is missing (default or error) instead of
 getting a `NullPointerException` far away from the cause.
+
+## Excel data (Apache POI)
+
+**Q: How do you read Excel data in your framework?**
+A: `ExcelUtil.readSheet` returns `List<Map<String,String>>` keyed by the header row, built with the Stream
+API. `DataFormatter` gives the displayed text, so `90210` doesn't become `90210.0`.
+
+**Q: Several parallel threads write results into the same Excel. What can go wrong and how did you solve it?**
+A: Lost updates and corrupted files. All writes go through one `ReentrantLock`, and saving is temp file +
+atomic move. A unit test runs 10 concurrent updates and checks none is lost.
+
+**Tweak: The business adds a new column "Branch" in the middle of the sheet. What breaks?**
+A: Nothing — access is by header name, not index.
+
+**Tweak: The sheet now has 200,000 rows and memory explodes. What do you change?**
+A: `XSSFWorkbook` loads everything in memory. For reading use the streaming SAX reader
+(`XSSFReader`/event API); for writing use `SXSSFWorkbook`. Or move bulk data to CSV or a database and keep
+Excel for small, human-edited data.
+
+**Tweak: Two Jenkins jobs run at the same time on the same machine and both write the file.**
+A: The in-JVM lock doesn't cover two processes. Give each build its own output copy
+(`results-<buildNumber>.xlsx`), or use a `FileChannel.lock()` file lock, or a database.
+
+**Q: Why not `@DataProvider` reading the Excel directly?**
+A: Cucumber owns the data flow here (features + steps), and we also *write back* results. A utility class
+can be used from Cucumber steps, TestNG tests, and API tests alike.
+
+**Q: How do you know your concurrency test actually tests something?**
+A: I removed the lock and ran it: it failed 3 out of 3 times. A concurrency test that still passes without
+the protection proves nothing.

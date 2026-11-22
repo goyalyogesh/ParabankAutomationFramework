@@ -1,5 +1,6 @@
 package io.github.thegoyalyogesh.qa.core.excel;
 
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -13,6 +14,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -70,6 +72,55 @@ public final class ExcelUtil {
             save(workbook, file);
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot write Excel file " + file, e);
+        } finally {
+            WRITE_LOCK.unlock();
+        }
+    }
+
+    /**
+     * Finds the first data row whose {@code keyColumn} equals {@code keyValue} and writes {@code updates}
+     * (column → value) into it. Columns that don't exist yet are appended to the header row.
+     * Thread-safe within one JVM.
+     */
+    public static void updateRow(Path file, String sheetName, String keyColumn, String keyValue,
+                                 Map<String, String> updates) {
+        WRITE_LOCK.lock();
+        try (Workbook workbook = open(file)) {
+            Sheet sheet = requireSheet(workbook, sheetName, file);
+            Row headerRow = sheet.getRow(0);
+            List<String> headers = new ArrayList<>(headers(sheet));
+
+            int keyIndex = headers.indexOf(keyColumn);
+            if (keyIndex < 0) {
+                throw new IllegalArgumentException(
+                        "Column '" + keyColumn + "' not found in sheet '" + sheetName + "' of " + file);
+            }
+
+            Row target = IntStream.rangeClosed(1, sheet.getLastRowNum())
+                    .mapToObj(sheet::getRow)
+                    .filter(Objects::nonNull)
+                    .filter(row -> keyValue.equals(cellText(row, keyIndex)))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "No row with " + keyColumn + "=" + keyValue + " in sheet '" + sheetName + "'"));
+
+            updates.forEach((column, value) -> {
+                int index = headers.indexOf(column);
+                if (index < 0) {
+                    index = headers.size();
+                    headers.add(column);
+                    headerRow.createCell(index).setCellValue(column);
+                }
+                Cell cell = target.getCell(index);
+                if (cell == null) {
+                    cell = target.createCell(index);
+                }
+                cell.setCellValue(value == null ? "" : value);
+            });
+
+            save(workbook, file);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot update Excel file " + file, e);
         } finally {
             WRITE_LOCK.unlock();
         }
