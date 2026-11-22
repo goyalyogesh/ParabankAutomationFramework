@@ -49,3 +49,16 @@ can be used from Cucumber steps, TestNG tests, and API tests alike.
 **Q: How do you know your concurrency test actually tests something?**
 A: I removed the lock and ran it: it failed 3 out of 3 times. A concurrency test that still passes without
 the protection proves nothing.
+
+## Test data generation
+
+**Q: How do you make sure usernames never clash on a shared public site?**
+A: `prefix_<yyyyMMddHHmmss>_<seq>`. The timestamp separates runs; an `AtomicInteger` sequence separates
+threads inside one run. A test generates 500 names in a parallel stream and checks all are unique.
+
+**Q: Why inject `Clock` and `Random` into the generator?**
+A: So tests are deterministic: a fixed clock gives a known timestamp and a seeded `Random` gives repeatable
+values. Production uses the system clock and `SecureRandom`.
+
+**Tweak: Two Jenkins agents start a build in the same second.**
+A: Add the Jenkins `BUILD_NUMBER` or hostname to the prefix (`qa_b123`), read through `ConfigReader`.

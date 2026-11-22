@@ -60,3 +60,13 @@ values, appends unknown columns to the header. One `ReentrantLock` serialises th
   (`UncheckedIOException: Cannot update Excel file`). Lock restored → all green. Proof the test is meaningful.
 
 **Docs**: guide 04 (with the experiment), Excel section of `INTERVIEW_QA.md`.
+
+### Task 5 — TestDataGenerator
+**What was built**
+`core/data/TestDataGenerator.java`: `uniqueUsername("qa")` → `qa_20261121183405_007` (timestamp separates
+runs, `AtomicInteger` sequence separates threads), `password()` (3 upper + 4 lower + 3 digits, no look-alike
+characters), `ssn()`, `phone()`, `zipCode()`. `Clock` and `Random` are injected so tests are repeatable.
+
+**Commands and results**
+- Red: `cannot find symbol TestDataGenerator`. Green: `Tests run: 4, Failures: 0`, including 500 usernames
+  generated in a parallel stream with the same frozen clock, all unique.
