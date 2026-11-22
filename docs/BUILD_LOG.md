@@ -141,3 +141,8 @@ currentWindow, windowHandles (Set), switchToWindow, closeCurrentWindow`.
   (`ConcurrentHashMap<Path, ExtentReports>`).
 - Tested by running a real mini Cucumber suite (`report-fixture/demo.feature`) through `io.cucumber.core.cli.Main`
   and reading the produced HTML. Red: `cannot find symbol ExtentCucumberPlugin`. Green: 2/2.
+
+### Task 4 — ApiClient
+`core/api/ApiClient`: one shared Rest Assured `RequestSpecification` (base URI + `Accept: application/json`);
+`request()` logs request/response only when a validation fails. Red → green (1/1). Core installed to `~/.m2`
+with 36 default tests passing (Rest Assured 6 / Groovy 5 loads fine on JDK 27).
