@@ -170,3 +170,60 @@ users from a parallel stream and checks all 200 are there.
 **Tweak: You need the registered users in ID order for a report.**
 A: Stream the values and sort: `values().stream().sorted(Comparator.comparing(ParaBankUser::userId)).toList()`.
 A `ConcurrentHashMap` itself has no order.
+
+## Transfers, hybrid checks and money
+
+**Q: Why verify balances through the API when the test runs in the browser?**
+A: The API gives exact values (`515.50` as `BigDecimal`) instead of formatted text, it's faster, and it shows what
+the UI hides. Our UI Bill Pay said "Complete" while the API showed no debit at all, a real defect.
+
+**Tweak: The UI says success but the backend didn't change. How do you prove whose bug it is?**
+A: Isolate layers: check the API (no transaction → not timing); find the request the page sends (browser JS →
+`services_proxy/bank/billpay`); replay it with curl (no debit); send the same body to the REST endpoint (debit
+works). So the defect is in the proxy path, not in our test.
+
+**Q: Why `BigDecimal` and `isEqualByComparingTo`?**
+A: `double` can't store 0.1 exactly. `BigDecimal.equals` also compares scale (`15.0` ≠ `15`), so we compare values
+with `compareTo` / `isEqualByComparingTo`.
+
+**Q: Why an `ArrayDeque` for the transfer chain?**
+A: Order matters (FIFO). `ArrayDeque` is O(1) at both ends, uses an array (no node per element like `LinkedList`) and
+isn't synchronised (unlike `Stack`). One thread owns the queue, so no locking is needed.
+
+**Tweak: The second transfer of the chain fails. What state are you in?**
+A: The first one already happened (no rollback; it's a real bank call). The queue stops, `remaining()` holds the
+transfers that never ran, and Excel marks them `NOT RUN`, so the report shows exactly what happened.
+
+**Tweak: Several threads must take transfers from one shared queue.**
+A: Switch to a `ConcurrentLinkedDeque` or a `BlockingQueue` (`LinkedBlockingDeque`) with `poll`/`take`, and keep
+balance checks per account isolated.
+
+**Q: How do you find the account that "Open New Account" created?**
+A: Snapshot the account ids into a `Set` before, read them again after, and take the difference
+(`after.removeAll(before)`); it must contain exactly the new number shown on screen.
+
+**Q: How does the ledger compute expected balances?**
+A: Streams: each transfer `flatMap`s into (sender, −amount) and (receiver, +amount), then
+`groupingBy(account, TreeMap::new, reducing(ZERO, value, BigDecimal::add))`. Sanity check: all changes sum to 0.
+
+**Q: Parallel tests checking balances, how do you avoid one test breaking another?**
+A: Data partitioning: every parallel scenario owns its customers. API scenarios that reuse customers run in a
+separate sequential block afterwards.
+
+**Q: You found that `/transfer` accepts any two accounts without login. What do you do?**
+A: Report it as a security defect (broken object-level authorisation, OWASP API #1), and don't hide it in the test.
+Our chain scenario documents the behaviour; a dedicated negative test would assert a 401/403 once fixed.
+
+## Flakiness from the environment
+
+**Q: The public site started returning HTTP 429 halfway through the run. How did you handle it?**
+A: Recognise it (Cloudflare 1015 page / status 429), wait (honour `Retry-After`, else 30/60/90 s), retry a limited
+number of times, then fail with a clear message. API retries are unit-tested with the JDK's `HttpServer` and a fake
+sleeper. Also: keep threads moderate (3), and don't hammer the site with manual probes during a run.
+
+**Tweak: Is it safe to retry a POST that moves money?**
+A: Only for responses that guarantee the server didn't process it, like 429 from the gateway. Never retry blindly on
+timeouts or 500s for non-idempotent calls; check the state first (e.g. look for the transaction).
+
+**Tweak: Why not just add `Thread.sleep(5000)` between tests?**
+A: It slows every run and still fails when the limit is hit. Back-off only when the server says so.

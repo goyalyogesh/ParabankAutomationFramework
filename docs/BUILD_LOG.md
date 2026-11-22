@@ -254,3 +254,40 @@ net changes add up to 0 — money is moved, never created).
 - `ParaBankApi`: `accounts`, `account`, `balance`, `transactions`, `transfer`; JSON numbers parsed as `BigDecimal`.
 - `TestContext.registeredUser(id)` shared by login and transfer steps; browser hook skips `@api` scenarios.
 - Unit suite 17/17.
+
+### Task 5 — Page objects
+`AccountServicesMenu` (hover → click → wait for the target page title; enum `Link`), `OpenAccountPage`,
+`TransferFundsPage`, `BillPayPage`, `AccountActivityPage`; `AccountsOverviewPage.accountIds/openActivity` (scroll).
+
+### Task 6 — Transfer scenarios and live runs (what went wrong and what we changed)
+**Run 1 (Chrome):** registration 10/10 (new users from the fresh working copy), 8 logins passed, then
+**Cloudflare blocked the machine** (Error 1015 / HTTP 429): 15 failures, including every transfer. Two lessons:
+the browser's block page says "Error 1015 – You are being rate limited" (our check only knew curl's
+"error code: 1015"), and the suite now sends enough requests to hit the limit.
+→ `ApiClient.send` retries 429 (honours `Retry-After`, else 30/60/90 s; 4 unit tests with the JDK `HttpServer`
+and a fake sleeper); `SiteGuard` recognises both block pages, waits and reloads; every menu navigation is guarded.
+
+**Run 2 (Chrome):** 29/34 passed. T01–T03 and the chain passed. B01/B02 failed: payer balance unchanged
+(expected 485.50, was 515.50). Investigation (see guide 09): the UI's `services_proxy/bank/billpay` confirms but
+never debits, while the REST `services/bank/billpay` works → **new ParaBank defect**. B01/B02 → `@knownDefect`;
+added **B03** (A → B Bill Pay through REST) so the requirement is covered by a working channel.
+API scenarios moved to their own sequential block (`ApiRunner`, `@api`) after the parallel browser block, so B03 can
+reuse U04/U05 safely. Gson declared explicitly (needed to send the payee as JSON). The working copy picks up the new
+B03 row (template rows merged by key; unit test extended first: failed, then passed).
+
+**Run 3 (Chrome):** 35 scenarios, **30 passed, 5 failed = exactly the known defects** (N01, N02, N07, B01, B02).
+One 429 during the API block with `Retry-After: 300` → client waited 5 minutes → passed.
+
+**Run 4 (Firefox):** 35 scenarios, 30 passed, same 5 known defects, no rate limit.
+
+Transfers sheet after the Firefox run (excerpt):
+
+| Id | Result | From before → after | To before → after | Channel |
+|---|---|---|---|---|
+| T01 | PASS | 195.50 → 170.50 | 90.00 → 115.00 | FIREFOX |
+| T02 | PASS | 164.50 → 124.00 | 90.00 → 130.50 | FIREFOX |
+| B01 | FAIL | 507.25 → 507.25 | 515.50 → 515.50 | FIREFOX (defect: no debit) |
+| B03 | PASS | 507.25 → 500.00 | 515.50 → 515.50 | REST API |
+| C01–C03 | PASS | net changes as expected | | REST API |
+
+Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactly those 5 scenarios.

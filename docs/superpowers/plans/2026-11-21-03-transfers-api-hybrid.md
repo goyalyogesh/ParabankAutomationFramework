@@ -1257,3 +1257,17 @@ confirmation. Commit `feat(parabank): own-account, bill pay and API chain transf
 - [ ] Guide `09-transfers-and-api-hybrid.md`; decisions D32+; Q&A (ArrayDeque, Set difference, BigDecimal, Actions API,
   hybrid testing, data partitioning for parallel runs, the `/transfer` security finding); README; BUILD_LOG.
 - [ ] Commit, push, republish the docs viewer.
+
+---
+
+## Execution notes (what changed while building, 2026-11-21)
+
+- **Rate limit:** the first full run got this machine blocked by Cloudflare. Added `ApiClient.send` (retries 429,
+  honours `Retry-After`), `ApiClient.Sleeper`, a 4-argument constructor, `ApiClientRetryTest`; `SiteGuard` now matches
+  the browser's "Error 1015 / rate limited" page and waits 30/60/90 s with reloads; `AccountServicesMenu` takes a
+  timeout and an enum `Link` and waits for the target page title.
+- **UI Bill Pay defect:** B01/B02 tagged `@knownDefect`. Added B03 (REST Bill Pay, `ParaBankApi.billPay`, Gson 2.13.1
+  declared), `@apiBillPay @api` scenario, `ApiRunner` (sequential) as TestNG block 4; `TransferRunner` tags
+  `@transfers and not @api`.
+- `TestDataRepository.fromTemplate` also adds template **rows** missing from the working copy (matched by first column).
+- Final: 35 scenarios, 30 pass, 5 `@knownDefect` failures, on Chrome and Firefox.
