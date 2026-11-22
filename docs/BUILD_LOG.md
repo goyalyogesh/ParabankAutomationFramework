@@ -351,3 +351,14 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
 - **Known-defect tags (user decision, 2026-11-22):** removed from N01, N02, N07 and B01 after 4 clean runs (D65). B02
   stays tagged (failed once in build 4 with a timeout, passed in build 6).
 - After untagging: Login + Transfer runners (Selenium, headless) 23/23 passed, including N01, N02, N07, B01 and B02.
+
+## 2026-11-22 — Fresh-clone check ("does it work on another computer?")
+- Fixed: `ci/jenkins/jenkins.yaml` had `/opt/homebrew/bin` hard-coded (Apple Silicon Macs only). `start-jenkins.sh` now
+  finds the folder holding `mvn` and passes it as `TOOLS_PATH`. README has a new "On a new computer" section.
+- Test: cloned from GitHub into a git-ignored folder with an **empty Maven repository** (`-Dmaven.repo.local`), so
+  nothing came from this Mac's cache (369 MB downloaded).
+  - `mvn install -DskipTests`: OK. Core unit tests 74/74, ParaBank unit tests 20/20.
+  - Registration (live, Selenium Chrome, headless): 10/10. The workbook was created from the template automatically.
+  - Login on Playwright: first run 15/18. All 3 failures were Cloudflare error 1015 (rate limit after a day of runs),
+    detected and named by the framework. Re-run with `-Dthreads=2`: 18/18.
+- The clone was deleted afterwards.
