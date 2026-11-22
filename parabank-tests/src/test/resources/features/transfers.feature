@@ -67,8 +67,10 @@ Feature: Money transfers
     And the payee's balance does not change, because Bill Pay treats the payee as an external company
     And the payer's transactions include the bill payment
 
-    # B01 was a known defect until 2026-11-22 (confirmation shown, payer never debited). Fixed on the site: passed in 4 clean runs, tag removed.
-    Examples: UI Bill Pay
+    # Known defect: confirmation shown, payer never debited. Looked fixed on 2026-11-22 morning (4 clean runs, tag
+    # removed), then REGRESSED the same afternoon: failed on local Chrome, Sauce Safari and Sauce Edge (Jenkins #8).
+    @knownDefect
+    Examples: UI Bill Pay (known defect, regressed 2026-11-22)
       | transferId |
       | B01        |
 

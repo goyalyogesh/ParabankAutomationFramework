@@ -93,8 +93,9 @@ Playwright later by switching the implementation in config — no page rewrites.
 A: Implement `PlaywrightUiDriver` (one class, ~12 methods) and map `Locator` strategies to Playwright
 selectors. Page objects, steps and features stay unchanged.
 
-**Tweak: Run on Selenium Grid / cloud (BrowserStack) instead of local browsers.**
-A: Only `DriverFactory` changes: return `new RemoteWebDriver(gridUrl, options)` when `-Dgrid.url` is set.
+**Tweak: Run on Selenium Grid / cloud (BrowserStack, Sauce Labs) instead of local browsers.**
+A: Done with Sauce Labs (guide 15): a `RemoteWebDriver` to the Sauce endpoint, created in one class (`SauceLabs`) and
+kept in the same `ThreadLocal`. Pages and steps did not change. Selected with `-Dui.engine=sauce -Dbrowser=safari`.
 
 ## Cucumber + TestNG and parallel execution
 
@@ -558,6 +559,34 @@ generated username `qa_261121183405_001` can be asserted exactly. `ApiClient` li
 interface): `ApiClientRetryTest` passes `waits::add`, so the 429 retry records the waits it *would* do (7 s, 7 s from
 `Retry-After`) instead of sleeping.
 
+## Sauce Labs (cloud browsers)
+
+**Q: How did you integrate Sauce Labs?**
+A: As a third engine (`ui.engine=sauce`) next to Selenium and Playwright. `SauceLabs.create` builds the capabilities
+(browser, `platformName` Windows 11 or macOS 15, `browserVersion=latest`, and `sauce:options` with credentials, job
+name and build) and opens a `RemoteWebDriver` to `ondemand.us-west-1.saucelabs.com`. In the retry rotation it is one
+more entry, e.g. `chrome,sauce:safari,sauce:edge`.
+
+**Q: How do the tests show up on the Sauce dashboard with names and pass/fail?**
+A: At the end of each scenario the hook calls `UiSession.reportResult(name, passed)`, which runs the Sauce JavaScript
+commands `sauce:job-name=...` and `sauce:job-result=passed|failed`. Locally it does nothing; a reporting error is
+logged and never fails the test.
+
+**Q: Where are the Sauce credentials?**
+A: Never in git or code. Locally in a git-ignored `.env` (mode 600), read from the environment. In Jenkins, a
+credential created by JCasC from secret files (not from Jenkins' environment), bound with `withCredentials` only for
+builds whose rotation uses `sauce:`, and masked in the log. A key that was ever pasted somewhere gets rotated.
+
+**Q: Did anything surprising come out of the first cloud runs?**
+A: Yes: three negative-login tests failed on Edge. Before blaming the cloud browser I re-ran them on local Chrome:
+same failures. ParaBank's old "accepts any password" defect had come back that afternoon, hours after it looked
+fixed. The tests were re-tagged `@knownDefect`. Lesson: a fixed defect keeps its test, and a failure on a new platform
+must be reproduced on a known one before it is called platform-specific.
+
+**Tweak: Cloud runs are slower. When do you use them?**
+A: Session start costs 10–30 s each, so: local browsers for fast feedback on every change, the cloud for browsers I
+don't have (Safari, Edge on Windows) and for retries in CI, where the cross-browser answer is worth the time.
+
 ## Multithreading and parallel execution: the question bank
 
 The questions interviewers ask most about threads and parallel runs, grouped from basics to "what if". Each answer
@@ -694,11 +723,12 @@ A: Screenshot files are named `<scenario>_t<threadId>_<nanoTime>.png` (`Screensh
 scenario in a `ConcurrentHashMap`; every log line shows the thread name (`[%t]` in the Log4j2 pattern), and `Hooks`
 logs which browser and thread each scenario got.
 
-**Q: How would you run on many machines (Selenium Grid)?**
-A: Not used here, everything runs locally. The change would be one place: `DriverFactory` creates a
-`RemoteWebDriver(gridUrl, options)` instead of `ChromeDriver`; the `ThreadLocal`, pages and steps stay the same.
-Then threads can go higher, because the browsers no longer use local CPU. Docker Selenium images or a cloud grid
-provide the nodes.
+**Q: How would you run on many machines (Selenium Grid / cloud)?**
+A: I run on Sauce Labs: `UiSession` starts a `RemoteWebDriver` (class `SauceLabs`) instead of a local driver, stored
+in the same `ThreadLocal`, so 3 scenarios run on 3 cloud browsers at once (my plan's limit), e.g. registration on 3
+Safari sessions in parallel: 10/10. Pages and steps didn't change. With a bigger plan or a self-hosted Selenium Grid
+(Docker images), threads can go higher because the browsers no longer use local CPU; the public site's rate limit
+then becomes the real limit.
 
 **Q: Cross-browser in parallel?**
 A: Either one run per browser at the same time (separate Jenkins stages or processes with `-Dbrowser=...`), or a

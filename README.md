@@ -16,7 +16,8 @@ in the docs, so the whole framework can be walked through in an interview.
   action is cross-checked through the REST API (hybrid tests).
 - **REST API suite**: 22 operations, each response validated against ParaBank's OpenAPI spec, plus functional and
   negative tests. It found 7 real API defects.
-- **Two UI engines** behind one `UiDriver` interface: Selenium or Playwright, chosen by configuration.
+- **Three UI engines** behind one `UiDriver` interface, chosen by configuration: Selenium, Playwright, or
+  **Sauce Labs** (real Safari, Edge, Chrome, Firefox in the cloud on macOS / Windows 11).
 - **Retry engine**: run 1 executes everything. If the pass rate (known defects excluded) is below 85%, only the failed
   scenarios run again on the next browser: Selenium Chrome → Selenium Firefox → Playwright Chrome. You get one report
   per run plus a combined report.
@@ -64,6 +65,8 @@ mvn -pl parabank-tests test -DsuiteXmlFile=testng-unit.xml                 # Par
 mvn -pl parabank-tests test -Dheadless=true                          # all: registration → login → transfers → API
 mvn -pl parabank-tests test -Dbrowser=firefox -Dthreads=2            # other browser / thread count
 mvn -pl parabank-tests test -Dui.engine=playwright                   # same tests on Playwright instead of Selenium
+set -a; . ./.env; set +a                                             # Sauce Labs credentials (git-ignored .env, guide 15)
+mvn -pl parabank-tests test -Dui.engine=sauce -Dbrowser=safari       # same tests on Safari in the Sauce Labs cloud
 mvn -pl parabank-tests test -DsuiteXmlFile=testng-registration.xml   # registration only
 mvn -pl parabank-tests test -DsuiteXmlFile=testng-login.xml          # login + footer (needs registered users)
 mvn -pl parabank-tests test -DsuiteXmlFile=testng-transfers.xml      # transfers only (needs registered users)
@@ -79,10 +82,12 @@ Results:
 - the 7 API defects (guide 12), which fail on purpose;
 - B02 (UI Bill Pay), which is still under watch;
 - 2 Find Transactions defects found on 2026-11-22: an impossible date (02-30-2026) is accepted, and every date is
-  shown one day early west of UTC (guide 09).
+  shown one day early west of UTC (guide 09);
+- N01, N02, N07 (the UI accepts wrong credentials) and B01 (Bill Pay never debits the payer): ParaBank fixed both on
+  the morning of 2026-11-22 and both came back the same afternoon, so the tags are back (guide 08, D70).
 
-Known defects are reported separately and never count against the pass rate. ParaBank fixed the UI login and Bill
-Pay defects by 2026-11-22. The tags on N01, N02, N07 and B01 were removed after 4 clean runs (D65).
+Known defects are reported separately and never count against the pass rate. N01, N02, N07 and B01 were untagged
+after 4 clean runs (D65), then re-tagged when ParaBank regressed the same day (D70).
 
 ## With the retry engine (the way CI runs it)
 ```bash
@@ -132,6 +137,7 @@ reports/, tools/   generated reports, local Jenkins / Playwright browsers (git-i
 | REST API suite with OpenAPI contract validation | Done (7 ParaBank API defects documented) |
 | Retry engine, per-run and combined reports | Done |
 | Playwright as run 3, by configuration | Done |
+| Sauce Labs cloud browsers (Safari, Edge), also in Jenkins | Done |
 | Jenkins pipeline | Done |
 | Publish `automation-core` to JFrog Artifactory | Pending (account to be created) |
 
@@ -153,8 +159,9 @@ Requirement-by-requirement status: [REQUIREMENTS.md](REQUIREMENTS.md), section 8
   [11 Jenkins](docs/guide/11-jenkins-pipeline.md) ·
   [12 API suite](docs/guide/12-api-suite-openapi.md) ·
   [13 Playwright](docs/guide/13-playwright-engine.md) ·
-  [14 Eclipse](docs/guide/14-running-in-eclipse.md)
-- Why things are the way they are: [docs/DECISIONS.md](docs/DECISIONS.md) (D1–D67)
+  [14 Eclipse](docs/guide/14-running-in-eclipse.md) ·
+  [15 Sauce Labs](docs/guide/15-sauce-labs-cloud.md)
+- Why things are the way they are: [docs/DECISIONS.md](docs/DECISIONS.md) (D1–D70)
 - Interview preparation: [docs/INTERVIEW_QA.md](docs/INTERVIEW_QA.md), including "where each concept is used"
 - What happened while building it: [docs/BUILD_LOG.md](docs/BUILD_LOG.md)
 - Parked work (more scenarios, Sauce Labs, JFrog): [docs/BACKLOG.md](docs/BACKLOG.md)

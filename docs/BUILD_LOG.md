@@ -380,3 +380,14 @@ Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactl
 - Two defects found and tagged `@knownDefect`: `02-30-2026` accepted (API 200 + empty list); dates shown one day early
   west of UTC (API 2026-11-22, page 11-21-2026). First version of the date scenario failed for a test reason (a new
   customer has no transactions); it now makes a $1.11 deposit through the API first.
+
+## 2026-11-22 — Sauce Labs (guide 15)
+- Account: US West, 3 parallel VMs. Credentials in git-ignored `.env` (600); Jenkins gets them from JCasC secret files.
+- New: `UiEngine.SAUCE`, `SauceLabs` (RemoteWebDriver, capabilities, dashboard result), `BrowserType` SAFARI/EDGE,
+  `DriverManager.start(Supplier)`, `UiSession.reportResult`, Jenkins `withCredentials` for `sauce:` rotations,
+  `sauce.region`/`sauce.build` passed to retry runs. 7 unit tests; core 92/92, ParaBank unit 20/20.
+- The compiler caught the Playwright `switch` missing SAFARI/EDGE (exhaustive switch expressions); one test
+  expectation was wrong (`platformName` stays "macOS 15").
+- Live: footer on Chrome/Win11, Safari 18/macOS 15, Edge/Win11 all passed, dashboard shows name + passed + build.
+  Registration on 3 parallel Safari sessions 10/10. Login on Edge 15/18: N01/N02/N07 failed, reproduced on local
+  Chrome, so ParaBank regressed (UI accepts wrong passwords again); re-tagged `@knownDefect` (D70).

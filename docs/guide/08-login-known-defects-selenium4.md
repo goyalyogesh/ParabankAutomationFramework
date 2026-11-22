@@ -36,6 +36,14 @@ to remove the tag after the first pass, but to watch a few clean runs. After 4 c
 and 6) the `@knownDefect` tag was removed (D65). The cases now sit in a normal Examples table, "Wrong credentials are
 rejected". If ParaBank regresses, they fail and count against the threshold, which is exactly what we want.
 
+### Update 2026-11-22 afternoon: regressed, tag back
+The first Sauce Labs runs (Edge) failed N01, N02 and N07: the site logged in with a wrong password again. Before
+blaming the new cloud browser, the same three cases were run on local Chrome: same failures, so ParaBank itself had
+regressed. An earlier `curl` probe had shown the same thing (a failed login landing on "Welcome John Smith"). The
+cases went back under `@knownDefect` with a dated comment (D70). The tests did their job: they caught a regression
+hours after the fix. The same afternoon B01 (UI Bill Pay: payer not debited) regressed too, on local Chrome and
+Sauce Safari and Edge alike (Jenkins #8), and was re-tagged the same way.
+
 ## Selenium 4 features in real flows
 | Feature | Where | API |
 |---|---|---|

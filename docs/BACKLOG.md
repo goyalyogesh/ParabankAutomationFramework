@@ -14,7 +14,7 @@ Picked from a review of what ParaBank offers vs what the framework tests. Done i
 
 Keep the total small: the public site rate-limits, so more scenarios make runs slower without adding much.
 
-## Sauce Labs (cloud browsers) — wanted, waiting for an account
+## Sauce Labs (cloud browsers) — **Done 2026-11-22** (guide 15)
 - Sign up for the 28-day free trial (no credit card) or apply for Open Sauce (free for open-source repositories).
 - Credentials only as environment variables `SAUCE_USERNAME` / `SAUCE_ACCESS_KEY` (Jenkins: credentials), never in git.
 - Plan: `DriverFactory` creates a `RemoteWebDriver` to Sauce Labs when the rotation entry is `sauce:<browser>`, e.g.
