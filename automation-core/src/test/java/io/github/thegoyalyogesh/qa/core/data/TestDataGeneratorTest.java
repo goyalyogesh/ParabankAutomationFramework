@@ -19,7 +19,7 @@ public class TestDataGeneratorTest {
 
     @Test
     public void usernameContainsPrefixTimestampAndSequence() {
-        assertThat(generator.uniqueUsername("qa")).matches("qa_20261121183405_\\d{3}");
+        assertThat(generator.uniqueUsername("qa")).matches("qa_261121183405_\\d{3}");
     }
 
     @Test

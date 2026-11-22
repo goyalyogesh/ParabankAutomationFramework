@@ -193,3 +193,9 @@ Three separate findings:
    "ParaBank is rate-limiting this machine … lower -Dthreads" instead of a vague timeout. Default threads stay at 3.
 
 Parallelism itself worked: the log shows `TestNG-PoolService-1/2/3` threads (3 threads, as configured).
+
+**Second live run** (after the rate limit cleared): still 10/10 "This username already exists", even with unique names.
+Probing with curl showed the real rule: **ParaBank rejects any username longer than 20 characters, with the misleading
+message "This username already exists."** (18 chars → registered, 21 chars → "already exists"). Our format
+`qa_yyyyMMddHHmmss_NNN` is 21 chars. Fix: 2-digit year, `qa_yyMMddHHmmss_NNN` = 19 chars. Lesson for interviews:
+don't trust an error message, isolate one variable at a time (here: length vs. characters).

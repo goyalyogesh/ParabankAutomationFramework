@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /** Generates unique, valid-looking test data. Thread-safe. */
 public final class TestDataGenerator {
 
-    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final DateTimeFormatter TIMESTAMP = DateTimeFormatter.ofPattern("yyMMddHHmmss");
     private static final String UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
     private static final String LOWER = "abcdefghijkmnpqrstuvwxyz";
     private static final String DIGITS = "23456789";
@@ -29,7 +29,7 @@ public final class TestDataGenerator {
         this.random = random;
     }
 
-    /** e.g. {@code qa_20261121183405_007}: timestamp separates runs, sequence separates threads. */
+    /** e.g. {@code qa_261121183405_007} (19 chars: ParaBank rejects usernames over 20 with a misleading "already exists"). */
     public String uniqueUsername(String prefix) {
         String timestamp = LocalDateTime.now(clock).format(TIMESTAMP);
         int next = SEQUENCE.incrementAndGet() % 1000;
