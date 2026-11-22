@@ -69,4 +69,16 @@ public interface UiDriver {
 
     /** Closes only the current tab. Call {@link #switchToWindow} afterwards. */
     void closeCurrentWindow();
+
+    /** Moves the mouse over the element (Selenium Actions API). */
+    void hover(String locator);
+
+    /** Scrolls the page until the element is in view (Selenium 4 Actions {@code scrollToElement}). */
+    void scrollTo(String locator);
+
+    /** Trimmed texts of all elements matching the locator; waits until at least one exists. */
+    List<String> texts(String locator);
+
+    /** Waits until the element has non-blank text (e.g. filled by JavaScript) and returns it. */
+    String waitForNonBlankText(String locator);
 }

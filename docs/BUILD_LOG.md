@@ -223,3 +223,12 @@ CustomerId, AccountNumber, RegisteredAt, Browser. **Second run:** 10/10 `EXISTIN
 - `target/rerun/login.txt`: `classpath:features/login.feature:35:36:37` — input for the Plan 04 retry engine.
 - Maven reports BUILD FAILURE because of the 3 known defects; Plan 04's threshold logic excludes them.
 - `testdata/ParaBankData.xlsx` in git stays the blank template (no credentials); each machine fills its own copy.
+
+---
+
+## Plan 03 — Transfers + Rest Assured hybrid (2026-11-21)
+
+### Task 1 — Actions API and text helpers
+`UiDriver` + `SeleniumUiDriver`: `hover` (Actions `moveToElement`), `scrollTo` (Selenium 4 Actions `scrollToElement`),
+`texts` (all matches, trimmed), `waitForNonBlankText` (values filled in by JavaScript, e.g. a new account number).
+Red (implementation stashed): `cannot find symbol: method hover`. Green: browser test 13/13.

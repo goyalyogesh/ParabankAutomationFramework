@@ -8,6 +8,7 @@ import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.WindowType;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.locators.RelativeLocator;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
@@ -161,6 +162,37 @@ public class SeleniumUiDriver implements UiDriver {
     @Override
     public void closeCurrentWindow() {
         driver.close();
+    }
+
+    @Override
+    public void hover(String locator) {
+        new Actions(driver).moveToElement(visible(locator)).perform();
+    }
+
+    @Override
+    public void scrollTo(String locator) {
+        By by = by(locator);
+        WebElement element = wait.until(d -> d.findElement(by));
+        new Actions(driver).scrollToElement(element).perform();
+    }
+
+    @Override
+    public List<String> texts(String locator) {
+        By by = by(locator);
+        List<WebElement> elements = wait.until(d -> {
+            List<WebElement> found = d.findElements(by);
+            return found.isEmpty() ? null : found;
+        });
+        return elements.stream().map(WebElement::getText).map(String::trim).toList();
+    }
+
+    @Override
+    public String waitForNonBlankText(String locator) {
+        By by = by(locator);
+        return wait.until(d -> {
+            String text = d.findElement(by).getText().trim();
+            return text.isEmpty() ? null : text;
+        });
     }
 
     static By toBy(Locator locator) {

@@ -2,6 +2,7 @@ package io.github.thegoyalyogesh.qa.core.ui;
 
 import io.github.thegoyalyogesh.qa.core.driver.BrowserType;
 import io.github.thegoyalyogesh.qa.core.driver.DriverManager;
+import org.openqa.selenium.JavascriptExecutor;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -29,11 +30,17 @@ public class SeleniumUiDriverBrowserTest {
             <div><label>First</label> <input id="first"></div>
             <div><label>Last</label> <input id="last"></div>
             <a id="lnk" href="https://example.invalid/x">external</a>
+            <div id="hoverTarget" onmouseover="this.textContent='hovered'">hover me</div>
+            <ul><li class="item">One</li><li class="item"> Two </li></ul>
+            <div id="lateText"></div>
+            <div style="height:3000px"></div>
+            <div id="far">far away</div>
             <script>
               setTimeout(function () {
                 var sel = document.getElementById('sel');
                 ['Alpha', 'Beta'].forEach(function (t) { var o = document.createElement('option'); o.text = t; sel.add(o); });
                 document.getElementById('late').textContent = 'ready';
+                document.getElementById('lateText').textContent = 'filled';
               }, 700);
             </script>
             </body></html>
@@ -127,6 +134,29 @@ public class SeleniumUiDriverBrowserTest {
         ui.switchToWindow(parent);
         assertThat(ui.windowHandles()).containsExactly(parent);
         assertThat(ui.title()).isEqualTo("Ui Test");
+    }
+
+    @Test
+    public void hoverFiresMouseOver() {
+        ui.hover("id=hoverTarget");
+        assertThat(ui.text("id=hoverTarget")).isEqualTo("hovered");
+    }
+
+    @Test
+    public void scrollToMovesThePage() {
+        ui.scrollTo("id=far");
+        Number scrollY = (Number) ((JavascriptExecutor) DriverManager.get()).executeScript("return window.scrollY");
+        assertThat(scrollY.longValue()).isPositive();
+    }
+
+    @Test
+    public void textsReturnsAllMatchesTrimmed() {
+        assertThat(ui.texts("css=li.item")).containsExactly("One", "Two");
+    }
+
+    @Test
+    public void waitForNonBlankTextWaitsForJavascript() {
+        assertThat(ui.waitForNonBlankText("id=lateText")).isEqualTo("filled");
     }
 
     @AfterClass(alwaysRun = true)
