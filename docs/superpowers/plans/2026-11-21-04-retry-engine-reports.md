@@ -1082,7 +1082,7 @@ Commit `feat(core): retry orchestrator with Maven run executor and combined repo
 `cucumber/*.html|json`, `screenshots/`, `maven.log`; `reports/combined/index.html` exists.
 
 - [ ] **Step 5: Live, retry demonstration:**
-`mvn -pl parabank-tests exec:java -Dheadless=true "-Dretry.demo.injectFailure=customer U0[1-6] can log in"`
+`mvn -pl parabank-tests exec:java -Dheadless=true "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out"`
 → Run 1: 6 injected failures → 24/30 = 80% < 85% → Run 2 on Firefox with only those 6 → all pass → 100%, PASSED.
 Combined report shows 6 × "Passed on retry".
 
@@ -1090,3 +1090,20 @@ Combined report shows 6 × "Passed on retry".
 
 ### Task 6: Docs and push
 - [ ] Guide `10-retry-engine-and-reports.md`, decisions, Q&A, README, BUILD_LOG; commit; push; republish viewer.
+
+---
+
+## Execution notes (what changed while building, 2026-11-21)
+
+- The plan's `-Dcucumber.features=uri:line` selection was **wrong**: property filters replace the runners' tags, so
+  every runner re-ran every retried scenario (24 instead of 6). `cucumber.filter.name` has the same flaw.
+  Replaced by `RetrySelection` (`-Dretry.scenarios=uri:line,...`) and `RetryAwareCucumberTests`, a runner base
+  class that filters the TestNG data-provider rows. All 4 runners extend it. `RunExecutor.execute` now takes
+  `List<ScenarioResult>`; `RunHistory.retryScenarios()` added.
+- `RetryAwareCucumberTests.scenarios()` carries `@DataProvider` (annotations aren't inherited by overrides);
+  regression test `RunnerDataProviderTest`.
+- `CombinedReport` merges duplicate attempts (`toMap(..., Boolean::logicalOr)`).
+- Core: `cucumber-testng` and `testng` are optional compile dependencies.
+- `RetryOrchestratorTest` first scenario: 7 passing scenarios (70 → 80 → 90%), the plan's 6 gave 66.7%.
+- Fault-injection pattern is `customer U0[1-6] can log in and out` (the real scenario name).
+- `reports/` is git-ignored.

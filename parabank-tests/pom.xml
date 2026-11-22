@@ -18,6 +18,8 @@
         <!-- mvn test -DsuiteXmlFile=testng-unit.xml   |   mvn test -Dthreads=5 -Dbrowser=firefox -Dheadless=true -->
         <suiteXmlFile>testng-parabank.xml</suiteXmlFile>
         <threads>3</threads>
+        <!-- the retry orchestrator sets this per run, e.g. "Run 2 - firefox" -->
+        <report.title>ParaBank Automation</report.title>
     </properties>
 
     <dependencies>
@@ -93,8 +95,26 @@
                         </property>
                     </properties>
                     <systemPropertyVariables>
-                        <report.title>ParaBank Automation</report.title>
+                        <report.title>${report.title}</report.title>
                     </systemPropertyVariables>
+                </configuration>
+            </plugin>
+            <!-- mvn -pl parabank-tests exec:java : run the suite with the retry engine (guide 10) -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>io.github.thegoyalyogesh.qa.core.retry.RetryOrchestrator</mainClass>
+                    <systemProperties>
+                        <systemProperty>
+                            <key>retry.moduleDir</key>
+                            <value>${project.basedir}</value>
+                        </systemProperty>
+                        <systemProperty>
+                            <key>retry.reportsDir</key>
+                            <value>${project.basedir}/../reports</value>
+                        </systemProperty>
+                    </systemProperties>
                 </configuration>
             </plugin>
         </plugins>

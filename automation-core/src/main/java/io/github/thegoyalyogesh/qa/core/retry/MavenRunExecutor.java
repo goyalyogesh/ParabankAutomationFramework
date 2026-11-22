@@ -41,7 +41,7 @@ public final class MavenRunExecutor implements RunExecutor {
     }
 
     @Override
-    public List<ScenarioResult> execute(int run, BrowserChoice browser, List<String> onlyScenarios) {
+    public List<ScenarioResult> execute(int run, BrowserChoice browser, List<ScenarioResult> onlyScenarios) {
         Path target = moduleDir.resolve("target");
         OUTPUT_DIRS.forEach(dir -> deleteRecursively(target.resolve(dir)));
         Path runDir = reportsDir.resolve("run-" + run);
@@ -67,13 +67,13 @@ public final class MavenRunExecutor implements RunExecutor {
         return CucumberJsonReader.readDirectory(runDir.resolve("cucumber"));
     }
 
-    List<String> command(int run, BrowserChoice browser, List<String> onlyScenarios) {
+    List<String> command(int run, BrowserChoice browser, List<ScenarioResult> onlyScenarios) {
         List<String> command = new ArrayList<>(List.of(mavenCommand, "-B", "test",
                 "-Dbrowser=" + browser.browser(),
                 "-Dheadless=" + browser.headless(),
                 "-Dreport.title=Run " + run + " - " + browser.label()));
         if (!onlyScenarios.isEmpty()) {
-            command.add("-Dcucumber.features=" + String.join(",", onlyScenarios));
+            command.add("-D" + RetrySelection.PROPERTY + "=" + RetrySelection.propertyValue(onlyScenarios));
         }
         command.addAll(extraArguments);
         command.addAll(runSpecificArguments.apply(run));

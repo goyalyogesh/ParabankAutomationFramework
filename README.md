@@ -31,9 +31,20 @@ Results: `parabank-tests/target/reports/spark.html` (Extent), `target/cucumber/`
 Expected today: 35 scenarios, 30 pass, 5 fail on purpose (`@knownDefect`): the UI logs in with any credentials
 (N01, N02, N07) and UI Bill Pay never debits the payer (B01, B02). See `docs/guide/08` and `09`.
 
+### With the retry engine (the way CI runs it)
+```bash
+mvn -q install -DskipTests
+mvn -pl parabank-tests exec:java -Dheadless=true        # run 1 on Chrome; below 85% → failed ones on Firefox, then headless Chrome
+mvn -pl parabank-tests exec:java -Dheadless=true "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out"   # demo: force a retry
+```
+Options: `-Dthreshold=85 -Dretry.maxRuns=3 -Dbrowser.rotation=chrome,firefox,chrome-headless`. Known defects are
+excluded from the pass rate and never retried. Reports: `reports/run-N/` (Extent, Cucumber, screenshots, Maven log)
+and `reports/combined/index.html` (every scenario × run). Exit code non-zero if the threshold isn't met.
+See `docs/guide/10-retry-engine-and-reports.md`.
+
 ## Structure
 ```
-automation-core/   reusable library (config, Excel, data, driver, UI abstraction)  → JFrog Artifactory
+automation-core/   reusable library (config, Excel, data, driver, UI, API, reports, retry engine) → JFrog Artifactory
 parabank-tests/    ParaBank pages, features, steps, runners
 testdata/          Excel workbook (input + results written back)
 docs/              guide (read in order), decisions, interview Q&A

@@ -24,8 +24,9 @@ public class RetryOrchestratorTest {
         }
 
         @Override
-        public List<ScenarioResult> execute(int run, BrowserChoice browser, List<String> onlyScenarios) {
-            calls.add(run + " " + browser.label() + " " + (onlyScenarios.isEmpty() ? "ALL" : onlyScenarios));
+        public List<ScenarioResult> execute(int run, BrowserChoice browser, List<ScenarioResult> onlyScenarios) {
+            calls.add(run + " " + browser.label() + " "
+                    + (onlyScenarios.isEmpty() ? "ALL" : onlyScenarios.stream().map(ScenarioResult::id).toList()));
             return script.getOrDefault(run, List.of());
         }
     }

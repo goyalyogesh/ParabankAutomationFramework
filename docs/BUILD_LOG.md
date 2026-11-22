@@ -291,3 +291,13 @@ Transfers sheet after the Firefox run (excerpt):
 | C01–C03 | PASS | net changes as expected | | REST API |
 
 Report: 5 Base64 screenshots in category "Known defect"; rerun files list exactly those 5 scenarios.
+
+## Plan 04 — Retry engine and combined report
+- Core `core.retry`: JSON reader, cumulative history, threshold policy, rotation, orchestrator, Maven executor,
+  combined report, `RetrySelection` + `RetryAwareCucumberTests`. Core tests 58, parabank unit tests 18.
+- Live normal run: 35 executed, 30 passed, 100% (5 known defects excluded), no retry, BUILD SUCCESS.
+- Live demo, try 1 (`cucumber.features=file:line`): run 2 executed 24 instead of 6; report crashed on duplicates.
+- Try 2 (`cucumber.filter.name`): same 24; logins rate-limited; misleading green.
+- Try 3 (data-provider filter): run 2 = 6, only in login runner, but run 1 = 33 (ApiRunner lost `@DataProvider`).
+- Final: run 1 = 35 executed, 23 passed (76.7%); run 2 on Firefox = exactly 7 (6 injected + T01, a real Chrome
+  failure), all passed → 100%, PASSED. T01 shows as "Passed on retry" in the combined report.

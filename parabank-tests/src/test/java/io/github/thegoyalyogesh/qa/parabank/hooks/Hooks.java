@@ -12,6 +12,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.file.Path;
+import java.util.regex.Pattern;
 
 /** Browser lifecycle per scenario, failure screenshots, and Excel write-back of failures/results. */
 public class Hooks {
@@ -23,6 +24,19 @@ public class Hooks {
 
     public Hooks(TestContext ctx) {
         this.ctx = ctx;
+    }
+
+    /**
+     * Fault injection to test the retry engine itself: {@code -Dinject.failure=<regex>} fails every scenario whose
+     * name matches. The orchestrator passes it to run 1 only ({@code -Dretry.demo.injectFailure}), so the retry path
+     * can be shown on a healthy site. Never set in normal runs.
+     */
+    @Before(order = 1)
+    public void injectFailure(Scenario scenario) {
+        String pattern = System.getProperty("inject.failure", "");
+        if (!pattern.isBlank() && Pattern.compile(pattern).matcher(scenario.getName()).find()) {
+            throw new AssertionError("Injected failure (testing the retry engine), pattern: " + pattern);
+        }
     }
 
     @Before(value = "not @api", order = 0)

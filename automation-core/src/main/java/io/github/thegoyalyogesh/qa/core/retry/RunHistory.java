@@ -67,6 +67,11 @@ public final class RunHistory {
                 .toList();
     }
 
+    /** {@link #retryCandidates()} as full results (the executor needs the names). */
+    public List<ScenarioResult> retryScenarios() {
+        return retryCandidates().stream().map(scenarios::get).toList();
+    }
+
     public List<ScenarioResult> knownDefects() {
         return scenarios.values().stream().filter(s -> s.hasTag(knownDefectTag)).toList();
     }

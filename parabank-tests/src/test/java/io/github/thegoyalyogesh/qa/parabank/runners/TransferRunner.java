@@ -1,7 +1,7 @@
 package io.github.thegoyalyogesh.qa.parabank.runners;
 
-import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
+import io.github.thegoyalyogesh.qa.core.retry.RetryAwareCucumberTests;
 import org.testng.annotations.DataProvider;
 
 @CucumberOptions(
@@ -15,7 +15,7 @@ import org.testng.annotations.DataProvider;
                 "rerun:target/rerun/transfers.txt",
                 "io.github.thegoyalyogesh.qa.core.report.ExtentCucumberPlugin:target/reports/spark.html"
         })
-public class TransferRunner extends AbstractTestNGCucumberTests {
+public class TransferRunner extends RetryAwareCucumberTests {
 
     @Override
     @DataProvider(parallel = true)

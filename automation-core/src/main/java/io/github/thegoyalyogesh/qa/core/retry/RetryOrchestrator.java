@@ -39,7 +39,7 @@ public final class RetryOrchestrator {
     }
 
     public RunHistory orchestrate() {
-        List<String> onlyScenarios = List.of();
+        List<ScenarioResult> onlyScenarios = List.of();
         for (int run = 1; ; run++) {
             BrowserChoice browser = rotation.get((run - 1) % rotation.size());
             say("Run %d on %s: %s", run, browser.label(),
@@ -59,7 +59,7 @@ public final class RetryOrchestrator {
             if (!policy.anotherRun(history, run)) {
                 return history;
             }
-            onlyScenarios = history.retryCandidates();
+            onlyScenarios = history.retryScenarios();
         }
     }
 

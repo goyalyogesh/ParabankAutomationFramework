@@ -19,7 +19,9 @@ public class CombinedReportTest {
                 new ScenarioResult("f:1", "Login", "U01 <logs> in", Set.of(), true),
                 new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), false),
                 new ScenarioResult("f:3", "Login", "N01 rejected", Set.of("@knownDefect"), false)));
-        history.record(2, "firefox", List.of(new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), true)));
+        // the same scenario reported twice in one run (e.g. by two runners) must not break the report
+        history.record(2, "firefox", List.of(new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), true),
+                new ScenarioResult("f:2", "Login", "U02 logs in", Set.of(), true)));
         List<RunSummary> runs = List.of(
                 new RunSummary(1, new BrowserChoice("chrome", false), 3, 1, 2, 50.0),
                 new RunSummary(2, new BrowserChoice("firefox", false), 1, 1, 0, 100.0));

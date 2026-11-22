@@ -1,7 +1,7 @@
 package io.github.thegoyalyogesh.qa.parabank.runners;
 
-import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
+import io.github.thegoyalyogesh.qa.core.retry.RetryAwareCucumberTests;
 
 /**
  * REST-only scenarios ({@code @api}). No browser. They run one at a time (the default, non-parallel data provider):
@@ -18,5 +18,5 @@ import io.cucumber.testng.CucumberOptions;
                 "rerun:target/rerun/api.txt",
                 "io.github.thegoyalyogesh.qa.core.report.ExtentCucumberPlugin:target/reports/spark.html"
         })
-public class ApiRunner extends AbstractTestNGCucumberTests {
+public class ApiRunner extends RetryAwareCucumberTests {
 }

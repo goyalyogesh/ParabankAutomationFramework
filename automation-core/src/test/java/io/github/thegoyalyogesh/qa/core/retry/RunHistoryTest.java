@@ -28,6 +28,7 @@ public class RunHistoryTest {
 
         assertThat(history.passRate()).isEqualTo(75.0);
         assertThat(history.retryCandidates()).containsExactly("c");
+        assertThat(history.retryScenarios()).extracting(ScenarioResult::name).containsExactly("Scenario c");
         assertThat(history.passedOnRetry()).containsExactly("b");
         assertThat(history.attempts("b")).extracting(RunHistory.Attempt::browser).containsExactly("chrome", "firefox");
     }

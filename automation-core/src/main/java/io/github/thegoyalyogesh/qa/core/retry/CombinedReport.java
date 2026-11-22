@@ -76,7 +76,7 @@ public final class CombinedReport {
             html.append("<th>Result</th></tr>");
             for (ScenarioResult scenario : scenarios) {
                 Map<Integer, Boolean> byRun = history.attempts(scenario.id()).stream()
-                        .collect(Collectors.toMap(RunHistory.Attempt::run, RunHistory.Attempt::passed));
+                        .collect(Collectors.toMap(RunHistory.Attempt::run, RunHistory.Attempt::passed, Boolean::logicalOr));
                 html.append("<tr><td>").append(escape(scenario.name())).append("</td>");
                 for (RunSummary run : runs) {
                     Boolean passed = byRun.get(run.run());

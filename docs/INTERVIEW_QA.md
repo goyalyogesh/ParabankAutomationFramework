@@ -227,3 +227,42 @@ timeouts or 500s for non-idempotent calls; check the state first (e.g. look for 
 
 **Tweak: Why not just add `Thread.sleep(5000)` between tests?**
 A: It slows every run and still fails when the limit is hit. Back-off only when the server says so.
+
+## Retry engine and reports
+
+**Q: How does your retry work?**
+A: Run 1 executes everything on Chrome. The orchestrator reads Cucumber's JSON, computes the cumulative pass rate
+without `@knownDefect` scenarios, and if it's below 85% re-runs only the scenarios that haven't passed yet on the
+next browser (Firefox, then headless Chrome), at most 3 runs. Each run is a separate `mvn test` with its own reports;
+a combined HTML page shows every scenario in every run.
+
+**Tweak: Why not Surefire's `rerunFailingTestsCount` or TestNG's `IRetryAnalyzer`?**
+A: Both retry immediately, in the same JVM and on the same browser, test by test. They can't apply a suite-level
+threshold, switch browser or keep a report per attempt. They also hide flakiness. Ours shows "Passed on retry".
+
+**Tweak: Why exclude known defects from the pass rate?**
+A: They fail because of a real application bug, so retrying wastes time and the result is known. Counting them
+would mix product bugs with automation health: 5 known defects out of 35 alone would push the rate to 85.7%.
+
+**Q: How do you re-run just the failed Cucumber scenarios?**
+A: Each scenario's id is `uri:line` from the JSON. We pass `-Dretry.scenarios=<ids>` and a runner base class filters
+the TestNG data provider rows. We don't use `-Dcucumber.features=file:line` because a filter given as a property
+replaces the runner's tags: all 4 runners re-ran all 6 scenarios (24 executions), which we saw live.
+
+**Tweak: Your retry showed "PASSED". How do you know it really passed?**
+A: Check the counts, not the verdict. Twice the verdict was green while the numbers were wrong: 24 executions
+instead of 6, then 33 scenarios instead of 35 (a runner lost its `@DataProvider`, because annotations aren't
+inherited by overriding methods). Both are now covered by tests.
+
+**Q: How did you test the retry engine without a flaky site?**
+A: Two ways. Unit tests with a fake `RunExecutor` that plays back prepared results per run (fast, deterministic).
+And fault injection in the real suite: `-Dretry.demo.injectFailure=<regex>` fails matching scenarios in run 1 only,
+so run 2 must retry exactly those on Firefox.
+
+**Tweak: A scenario fails on Chrome and passes on Firefox. What does it tell you?**
+A: Either a browser-specific bug (investigate, maybe a real defect) or flakiness (timing, data). The combined
+report lists it as "Passed on retry", so it gets triaged rather than hidden.
+
+**Tweak: Why a new Maven process per run?**
+A: Clean state (static registries, ThreadLocal drivers, the report singleton), same as separate CI builds, and the
+orchestrator only depends on files the run leaves behind: Cucumber JSON.

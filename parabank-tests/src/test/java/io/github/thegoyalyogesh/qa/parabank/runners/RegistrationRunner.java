@@ -1,7 +1,7 @@
 package io.github.thegoyalyogesh.qa.parabank.runners;
 
-import io.cucumber.testng.AbstractTestNGCucumberTests;
 import io.cucumber.testng.CucumberOptions;
+import io.github.thegoyalyogesh.qa.core.retry.RetryAwareCucumberTests;
 import org.testng.annotations.DataProvider;
 
 @CucumberOptions(
@@ -15,7 +15,7 @@ import org.testng.annotations.DataProvider;
                 "rerun:target/rerun/registration.txt",
                 "io.github.thegoyalyogesh.qa.core.report.ExtentCucumberPlugin:target/reports/spark.html"
         })
-public class RegistrationRunner extends AbstractTestNGCucumberTests {
+public class RegistrationRunner extends RetryAwareCucumberTests {
 
     /** parallel = true: each scenario (one customer) runs on its own TestNG data-provider thread. */
     @Override
