@@ -45,17 +45,26 @@ pipeline {
             steps {
                 sh 'mkdir -p "$(dirname "$TESTDATA_FILE")"'
                 script {
-                    def demo = params.DEMO_RETRY ? '"-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2' : ''
+                    // Parameters are user input: validate their format, then hand them to the shell only through
+                    // environment variables inside a single-quoted script (no Groovy interpolation into sh = no injection).
+                    if (!(params.THREADS ==~ /^[1-9][0-9]?$/)) { error "THREADS must be 1-99, got '${params.THREADS}'" }
+                    if (!(params.THRESHOLD ==~ /^[0-9]{1,3}(\.[0-9]+)?$/)) { error "THRESHOLD must be a number, got '${params.THRESHOLD}'" }
+                    if (!(params.BROWSER_ROTATION ==~ /^[a-z:,-]+$/)) { error "BROWSER_ROTATION may only contain a-z : , - (got '${params.BROWSER_ROTATION}')" }
                     // Demo: 6 injected failures out of ~47 counted scenarios stay above 85%, so force the retry path
-                    def threshold = params.DEMO_RETRY ? '100' : params.THRESHOLD
-                    sh """mvn -B -pl parabank-tests exec:java \
-                        -Dheadless=${params.HEADLESS} \
-                        -Dthreads=${params.THREADS} \
-                        -Dthreshold=${threshold} \
-                        -Dbrowser.rotation=${params.BROWSER_ROTATION} \
-                        -Dtestdata.file=\$TESTDATA_FILE \
-                        -Dretry.passThrough=testdata.file \
-                        ${demo}"""
+                    withEnv(["RUN_THREADS=${params.THREADS}",
+                             "RUN_THRESHOLD=${params.DEMO_RETRY ? '100' : params.THRESHOLD}",
+                             "RUN_ROTATION=${params.BROWSER_ROTATION}",
+                             "RUN_HEADLESS=${params.HEADLESS}",
+                             "RUN_DEMO=${params.DEMO_RETRY}"]) {
+                        sh '''
+                            set -- -Dheadless="$RUN_HEADLESS" -Dthreads="$RUN_THREADS" -Dthreshold="$RUN_THRESHOLD" \
+                                   -Dbrowser.rotation="$RUN_ROTATION" -Dtestdata.file="$TESTDATA_FILE" -Dretry.passThrough=testdata.file
+                            if [ "$RUN_DEMO" = "true" ]; then
+                                set -- "$@" "-Dretry.demo.injectFailure=customer U0[1-6] can log in and out" -Dretry.demo.injectRuns=2
+                            fi
+                            mvn -B -pl parabank-tests exec:java "$@"
+                        '''
+                    }
                 }
             }
         }

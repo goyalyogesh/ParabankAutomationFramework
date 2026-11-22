@@ -50,3 +50,14 @@ CRUMB=$(curl -s -c /tmp/c -u admin:$P $J/crumbIssuer/api/json | python3 -c "impo
 curl -b /tmp/c -u admin:$P -H "$CRUMB" -X POST "$J/job/parabank-automation/buildWithParameters?DEMO_RETRY=true"
 ```
 The crumb is Jenkins' CSRF protection: a POST without it is rejected.
+
+## Parameters are untrusted input (fixed after Plan 07)
+The first version built the Maven command with Groovy interpolation: `sh """mvn ... -Dbrowser.rotation=${params.BROWSER_ROTATION}"""`.
+Groovy pastes the text into the script before the shell sees it, so a rotation like `chrome; rm -rf ~` would have run
+as a command. This is the Jenkins form of command injection. Now:
+1. each parameter is checked against a strict pattern (`THREADS` 1-99, `THRESHOLD` a number, `BROWSER_ROTATION` only
+   `a-z : , -`), and the build fails early with a clear message otherwise;
+2. values go into `withEnv([...])` and the script is single-quoted (`sh ''' ... "$RUN_ROTATION" '''`), so the shell
+   reads them as data, never as code. Arguments are collected with `set -- ...` so quoting survives.
+Rule of thumb: never put `${params.X}` (or any user text) inside a double-quoted `sh` string.
+
