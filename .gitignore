@@ -21,3 +21,6 @@ settings.xml
 
 # Working copy of the test-data workbook (created from the template, holds generated credentials and results)
 testdata/ParaBankData.xlsx
+
+# local Jenkins (war, home, plugins, admin password)
+tools/jenkins/

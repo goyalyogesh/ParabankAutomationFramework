@@ -5,6 +5,7 @@ import org.testng.annotations.Test;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static io.github.thegoyalyogesh.qa.core.retry.RunHistoryTest.result;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -86,5 +87,17 @@ public class RetryOrchestratorTest {
         RetryOrchestrator orchestrator = new RetryOrchestrator(new ThresholdPolicy(85, 3), ROTATION, "@knownDefect", executor);
 
         assertThatThrownBy(orchestrator::orchestrate).hasMessageContaining("no scenario results");
+    }
+
+    @Test
+    public void forwardsDefaultAndExtraPropertiesThatAreSet() {
+        Properties properties = new Properties();
+        properties.setProperty("threads", "2");
+        properties.setProperty("testdata.file", "/data/book.xlsx");
+        properties.setProperty("retry.passThrough", "testdata.file, not.set");
+        properties.setProperty("unrelated", "x");
+
+        assertThat(RetryOrchestrator.passThroughArguments(properties))
+                .containsExactly("-Dthreads=2", "-Dtestdata.file=/data/book.xlsx");
     }
 }

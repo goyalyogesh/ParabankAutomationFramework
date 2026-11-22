@@ -1,0 +1,41 @@
+# Jenkins Configuration as Code (JCasC): the whole Jenkins setup is in git, nothing is clicked in the UI.
+# Values like ${JENKINS_ADMIN_PASSWORD} come from environment variables set by start-jenkins.sh (never from git).
+jenkins:
+  systemMessage: "ParaBank automation - local Jenkins (configured by ci/jenkins/jenkins.yaml)"
+  numExecutors: 1            # one build at a time: the public site rate-limits, and browsers need the CPU
+  mode: NORMAL
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: "PATH+HOMEBREW"          # Maven, browsers' drivers via Selenium Manager
+            value: "/opt/homebrew/bin"
+unclassified:
+  location:
+    url: "http://127.0.0.1:8081/"
+jobs:
+  - script: |
+      pipelineJob('parabank-automation') {
+        description('Builds the framework, runs unit tests, then the ParaBank suite with the retry engine (Jenkinsfile).')
+        logRotator { numToKeep(20) }
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote { url('${REPO_URL}') }
+                branch('*/master')
+              }
+            }
+            scriptPath('Jenkinsfile')
+            lightweight(true)
+          }
+        }
+      }

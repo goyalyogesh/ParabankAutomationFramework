@@ -2,8 +2,10 @@ package io.github.thegoyalyogesh.qa.core.retry;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 /**
@@ -14,14 +16,14 @@ import java.util.stream.Stream;
  * <pre>
  * mvn -pl parabank-tests exec:java [-Dthreshold=85] [-Dretry.maxRuns=3]
  *     [-Dbrowser.rotation=chrome,firefox,chrome-headless] [-Dheadless=true] [-Dthreads=3]
- *     [-Dretry.demo.injectFailure=&lt;regex of scenario names to fail in run 1&gt;]
+ *     [-Dretry.passThrough=testdata.file] [-Dretry.demo.injectFailure=&lt;regex of scenario names to fail in run 1&gt;]
  * </pre>
  */
 public final class RetryOrchestrator {
 
     public static final String KNOWN_DEFECT_TAG = "@knownDefect";
 
-    /** System properties forwarded to every run, if set. */
+    /** System properties forwarded to every run, if set; more with {@code -Dretry.passThrough=key1,key2}. */
     private static final List<String> PASS_THROUGH = List.of("threads", "timeout.seconds", "app.url", "api.url", "suiteXmlFile");
 
     private final ThresholdPolicy policy;
@@ -71,6 +73,19 @@ public final class RetryOrchestrator {
         return history;
     }
 
+    /** {@code -Dkey=value} for every default or {@code retry.passThrough} key that is set, in that order. */
+    static List<String> passThroughArguments(Properties properties) {
+        List<String> extra = Arrays.stream(properties.getProperty("retry.passThrough", "").split(","))
+                .map(String::trim)
+                .filter(key -> !key.isEmpty())
+                .toList();
+        return Stream.concat(PASS_THROUGH.stream(), extra.stream())
+                .distinct()
+                .filter(key -> properties.getProperty(key) != null)
+                .map(key -> "-D" + key + "=" + properties.getProperty(key))
+                .toList();
+    }
+
     static void say(String format, Object... args) {
         System.out.println("[retry] " + String.format(Locale.ROOT, format, args));
     }
@@ -83,10 +98,7 @@ public final class RetryOrchestrator {
         Path moduleDir = Path.of(System.getProperty("retry.moduleDir", ".")).toAbsolutePath().normalize();
         Path reportsDir = Path.of(System.getProperty("retry.reportsDir", moduleDir.resolve("reports").toString()))
                 .toAbsolutePath().normalize();
-        List<String> passThrough = PASS_THROUGH.stream()
-                .filter(key -> System.getProperty(key) != null)
-                .map(key -> "-D" + key + "=" + System.getProperty(key))
-                .toList();
+        List<String> passThrough = passThroughArguments(System.getProperties());
         String injectFailure = System.getProperty("retry.demo.injectFailure");
 
         MavenRunExecutor executor = new MavenRunExecutor(moduleDir, reportsDir,
