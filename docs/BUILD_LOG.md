@@ -154,3 +154,11 @@ with 36 default tests passing (Rest Assured 6 / Groovy 5 loads fine on JDK 27).
 - Red: `package ...parabank.model does not exist`. Green: `ParaBankUserTest` 3/3.
 - **Gotcha found:** Maven printed "dependency version is missing" because the *parent* POM in `~/.m2` was the old one
   (`mvn -pl automation-core install` does not reinstall the parent). Fix: `mvn install -N` (or build with `-am`).
+
+### Task 6 — Excel repository, user registry, workbook
+- `TestDataRepository`: Users / LoginNegative sheets ↔ records; `{U01}` placeholders resolve to U01's username;
+  `recordRegistration`, `recordRegistrationFailure`, `recordLoginResult` write back through `ExcelUtil.updateRow`.
+- `UserRegistry`: static `ConcurrentHashMap<String, ParaBankUser>`; test registers 200 users from a parallel stream.
+- Red: `package ...parabank.data does not exist`. Green: unit suite 11/11.
+- `CreateTestDataWorkbook` tool generated `testdata/ParaBankData.xlsx` (sheets Users: 10 customers U01–U10 with blank
+  credentials; LoginNegative: N01–N07).
