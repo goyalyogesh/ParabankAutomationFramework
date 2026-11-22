@@ -27,8 +27,8 @@ The modular split is the foundation for publishing `automation-core` to JFrog la
 
 ### Task 2 — ConfigReader
 **What was built**
-`core/config/ConfigReader.java`: reads settings with precedence `-D` system property > environment variable
-> `config.properties`. Typed getters (`getInt`, `getDouble`, `getBoolean`, `getList`) and `find()` returning
+`core/config/ConfigReader.java`: reads settings with precedence: `-D` system property, then environment variable,
+then `config.properties`. Typed getters (`getInt`, `getDouble`, `getBoolean`, `getList`) and `find()` returning
 `Optional`. The environment map is injected, so tests can fake env vars.
 
 **Commands and results**
@@ -37,3 +37,14 @@ The modular split is the foundation for publishing `automation-core` to JFrog la
 - After adding the class → `Tests run: 7, Failures: 0, Errors: 0` — "green".
 
 **Docs**: guide 03, first section of `INTERVIEW_QA.md` (configuration questions).
+
+### Task 3 — ExcelUtil: reading sheets
+**What was built**
+`core/excel/ExcelUtil.java` with `readSheet` (sheet → `List<Map<String,String>>` keyed by header, built with
+`IntStream` → `map` → `filter` → `toList()`) and `writeSheet` (create/replace one sheet, keep the others).
+`DataFormatter` returns text exactly as Excel shows it (`90210`, not `90210.0`). Saves go to a `.tmp` file
+first, then an atomic rename.
+
+**Commands and results**
+- Red: `cannot find symbol ExcelUtil`. Green: `Tests run: 5, Failures: 0`. No Log4j warning, because
+  `log4j-core` is on the test classpath (decision D16).
