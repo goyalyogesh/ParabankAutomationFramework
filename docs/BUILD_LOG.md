@@ -125,3 +125,10 @@ Parent POM pins Cucumber **7.34.9** (newest 7.x; 8.1.0 was released 6 days ago, 
 (brings Groovy 5, which supports the JDK 27 that Maven runs on here) and ExtentReports **5.1.2**.
 `automation-core` declares them as `<optional>` so projects that don't use the Cucumber/Extent/API helpers don't inherit them.
 Result: core build green, 33 tests.
+
+### Task 2 — Selenium 4 actions in UiDriver
+Added `value, attribute, waitVisible, waitForAnyVisible, typeBelow (relative locator), openInNewTab (WindowType.TAB),
+currentWindow, windowHandles (Set), switchToWindow, closeCurrentWindow`.
+- Red (confirmed by temporarily removing the new code): `cannot find symbol: method typeBelow`.
+- Green: `SeleniumUiDriverBrowserTest` 9/9 in headless Chrome (relative locator typed into the field below,
+  new tab opened, 2 distinct handles, tab closed, parent restored).

@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -25,6 +26,9 @@ public class SeleniumUiDriverBrowserTest {
             <select id="sel"></select>
             <div id="hidden" style="display:none">secret</div>
             <div id="late"></div>
+            <div><label>First</label> <input id="first"></div>
+            <div><label>Last</label> <input id="last"></div>
+            <a id="lnk" href="https://example.invalid/x">external</a>
             <script>
               setTimeout(function () {
                 var sel = document.getElementById('sel');
@@ -37,12 +41,16 @@ public class SeleniumUiDriverBrowserTest {
 
     private UiDriver ui;
     private String pageUrl;
+    private String secondUrl;
 
     @BeforeClass(alwaysRun = true)
     public void startBrowser() throws IOException {
         Path page = Files.createTempFile("ui-test", ".html");
         Files.writeString(page, PAGE);
         pageUrl = page.toUri().toString();
+        Path second = Files.createTempFile("ui-second", ".html");
+        Files.writeString(second, "<html><head><title>Second</title></head><body>2</body></html>");
+        secondUrl = second.toUri().toString();
         DriverManager.start(BrowserType.CHROME, true);
         ui = new SeleniumUiDriver(DriverManager.get(), Duration.ofSeconds(5));
     }
@@ -85,6 +93,40 @@ public class SeleniumUiDriverBrowserTest {
         byte[] png = ui.screenshot();
         assertThat(png).hasSizeGreaterThan(100);
         assertThat(png[1]).isEqualTo((byte) 'P');
+    }
+
+    @Test
+    public void typeBelowUsesSelenium4RelativeLocator() {
+        ui.type("id=first", "Ann");
+        ui.typeBelow("id=first", "Smith");
+        assertThat(ui.value("id=first")).isEqualTo("Ann");
+        assertThat(ui.value("id=last")).isEqualTo("Smith");
+    }
+
+    @Test
+    public void attributeReturnsRawHtmlValue() {
+        assertThat(ui.attribute("id=lnk", "href")).isEqualTo("https://example.invalid/x");
+    }
+
+    @Test
+    public void waitForAnyVisibleReturnsFirstVisibleLocatorOrEmpty() {
+        assertThat(ui.waitForAnyVisible(Duration.ofSeconds(2), "id=hidden", "id=btn")).contains("id=btn");
+        assertThat(ui.waitForAnyVisible(Duration.ofSeconds(1), "id=missing")).isEmpty();
+    }
+
+    @Test
+    public void newTabLifecycleWithWindowHandleSet() {
+        String parent = ui.currentWindow();
+        String child = ui.openInNewTab(secondUrl);
+
+        assertThat(ui.title()).isEqualTo("Second");
+        Set<String> handles = ui.windowHandles();
+        assertThat(handles).hasSize(2).contains(parent, child);
+
+        ui.closeCurrentWindow();
+        ui.switchToWindow(parent);
+        assertThat(ui.windowHandles()).containsExactly(parent);
+        assertThat(ui.title()).isEqualTo("Ui Test");
     }
 
     @AfterClass(alwaysRun = true)

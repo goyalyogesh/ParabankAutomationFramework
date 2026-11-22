@@ -4,14 +4,21 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.WindowType;
+import org.openqa.selenium.support.locators.RelativeLocator;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /** {@link UiDriver} backed by Selenium WebDriver with explicit waits (no implicit waits anywhere). */
 public class SeleniumUiDriver implements UiDriver {
@@ -93,6 +100,67 @@ public class SeleniumUiDriver implements UiDriver {
     @Override
     public byte[] screenshot() {
         return ((TakesScreenshot) driver).getScreenshotAs(OutputType.BYTES);
+    }
+
+    @Override
+    public String value(String locator) {
+        return visible(locator).getDomProperty("value");
+    }
+
+    @Override
+    public String attribute(String locator, String name) {
+        return visible(locator).getDomAttribute(name);
+    }
+
+    @Override
+    public void waitVisible(String locator) {
+        visible(locator);
+    }
+
+    @Override
+    public Optional<String> waitForAnyVisible(Duration timeout, String... locators) {
+        try {
+            return Optional.of(new WebDriverWait(driver, timeout).until(d ->
+                    Arrays.stream(locators).filter(this::isVisible).findFirst().orElse(null)));
+        } catch (TimeoutException e) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
+    public void typeBelow(String anchorLocator, String text) {
+        visible(anchorLocator);
+        By below = RelativeLocator.with(By.tagName("input")).below(by(anchorLocator));
+        WebElement input = wait.until(d -> d.findElement(below));
+        input.clear();
+        input.sendKeys(text);
+    }
+
+    @Override
+    public String openInNewTab(String url) {
+        driver.switchTo().newWindow(WindowType.TAB);
+        driver.get(url);
+        return driver.getWindowHandle();
+    }
+
+    @Override
+    public String currentWindow() {
+        return driver.getWindowHandle();
+    }
+
+    @Override
+    public Set<String> windowHandles() {
+        return new LinkedHashSet<>(driver.getWindowHandles());
+    }
+
+    @Override
+    public void switchToWindow(String handle) {
+        driver.switchTo().window(handle);
+    }
+
+    @Override
+    public void closeCurrentWindow() {
+        driver.close();
     }
 
     static By toBy(Locator locator) {
