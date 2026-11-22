@@ -232,3 +232,7 @@ CustomerId, AccountNumber, RegisteredAt, Browser. **Second run:** 10/10 `EXISTIN
 `UiDriver` + `SeleniumUiDriver`: `hover` (Actions `moveToElement`), `scrollTo` (Selenium 4 Actions `scrollToElement`),
 `texts` (all matches, trimmed), `waitForNonBlankText` (values filled in by JavaScript, e.g. a new account number).
 Red (implementation stashed): `cannot find symbol: method hover`. Green: browser test 13/13.
+
+### Task 2 — ExcelUtil sheet names and headers
+`sheetNames(file)` and `readHeaders(file, sheet)` (needed to upgrade an older working workbook with new sheets).
+Red: `cannot find symbol: method sheetNames`. Green 2/2; core default suite 39/39, installed.

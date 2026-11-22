@@ -51,6 +51,24 @@ public final class ExcelUtil {
         }
     }
 
+    /** Sheet names in workbook order. */
+    public static List<String> sheetNames(Path file) {
+        try (Workbook workbook = open(file)) {
+            return IntStream.range(0, workbook.getNumberOfSheets()).mapToObj(workbook::getSheetName).toList();
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read Excel file " + file, e);
+        }
+    }
+
+    /** Header row of a sheet, in column order (also works for a sheet without data rows). */
+    public static List<String> readHeaders(Path file, String sheetName) {
+        try (Workbook workbook = open(file)) {
+            return headers(requireSheet(workbook, sheetName, file));
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read Excel file " + file, e);
+        }
+    }
+
     /** Creates (or replaces) one sheet; other sheets in an existing file are kept. */
     public static void writeSheet(Path file, String sheetName, List<String> headers,
                                   List<Map<String, String>> rows) {
