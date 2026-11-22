@@ -24,3 +24,16 @@ Environment: macOS, Maven 3.10.0 running on JDK 27 (compiling for Java 21), Chro
 **Why it matters**
 The modular split is the foundation for publishing `automation-core` to JFrog later: other projects add one
 `<dependency>` and get all the utilities.
+
+### Task 2 — ConfigReader
+**What was built**
+`core/config/ConfigReader.java`: reads settings with precedence `-D` system property > environment variable
+> `config.properties`. Typed getters (`getInt`, `getDouble`, `getBoolean`, `getList`) and `find()` returning
+`Optional`. The environment map is injected, so tests can fake env vars.
+
+**Commands and results**
+- Test written first → `mvn -pl automation-core test -Dtest=ConfigReaderTest` failed to compile
+  (`cannot find symbol ConfigReader`) — the expected "red" step.
+- After adding the class → `Tests run: 7, Failures: 0, Errors: 0` — "green".
+
+**Docs**: guide 03, first section of `INTERVIEW_QA.md` (configuration questions).
