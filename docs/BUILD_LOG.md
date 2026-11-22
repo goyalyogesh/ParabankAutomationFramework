@@ -171,3 +171,25 @@ with 36 default tests passing (Rest Assured 6 / Groovy 5 loads fine on JDK 27).
 - `RegistrationService`: API check for existing credentials → generate if blank → UI register → retry once with a new
   name if taken → customer id and first account via API.
 - Compiles; exercised live in Task 8.
+
+### Task 8 — Cucumber wiring and registration (first live run: what went wrong and what we fixed)
+Built `TestContext` (PicoContainer, one per scenario), `Hooks` (browser per scenario, failure screenshot, Excel
+write-back of failures, quit), `RegistrationSteps`, `RegistrationRunner` / `LoginRunner` (parallel `@DataProvider`),
+`testng-parabank.xml`, `registration.feature` (Scenario Outline U01–U10).
+
+**First live run** (`-Dcucumber.filter.tags=@registration`): 20 failures, all "This username already exists."
+Three separate findings:
+
+1. **Real bug in our generator.** The log showed U01, U02 and U03 all trying `qa_20261121193807_001`. Each scenario
+   creates its own `TestDataGenerator`, and the sequence counter was an *instance* field, so every instance started at
+   001 and three threads in the same second collided. Fix: the counter is now `static` (one per JVM).
+   Regression test `separateInstancesNeverProduceTheSameUsername` failed first (300 instances → **1** distinct name),
+   then passed after the fix. Committed separately as a `fix(core)` commit.
+2. **20 runs instead of 10.** `-Dcucumber.filter.tags` replaces the tags of *every* runner, so LoginRunner also ran
+   the registration scenarios. Fix: dedicated suites `testng-registration.xml` and `testng-login.xml`; the full flow
+   stays in `testng-parabank.xml`.
+3. **Cloudflare rate limit.** The burst (20 browsers + manual curl probes) got this machine HTTP 429
+   "error code: 1015". New `SiteGuard` makes `LoginPage.open()` / `RegisterPage.open()` fail fast with
+   "ParaBank is rate-limiting this machine … lower -Dthreads" instead of a vague timeout. Default threads stay at 3.
+
+Parallelism itself worked: the log shows `TestNG-PoolService-1/2/3` threads (3 threads, as configured).

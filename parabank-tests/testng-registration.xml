@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Registration only: mvn -pl parabank-tests test -DsuiteXmlFile=testng-registration.xml -->
+<suite name="ParaBank registration" verbose="1">
+    <test name="Register customers from Excel">
+        <classes>
+            <class name="io.github.thegoyalyogesh.qa.parabank.runners.RegistrationRunner"/>
+        </classes>
+    </test>
+</suite>

@@ -18,15 +18,17 @@ public final class LoginPage {
 
     private final UiDriver ui;
     private final String baseUrl;
+    private final Duration timeout;
 
-    public LoginPage(UiDriver ui, String baseUrl) {
+    public LoginPage(UiDriver ui, String baseUrl, Duration timeout) {
         this.ui = ui;
         this.baseUrl = baseUrl;
+        this.timeout = timeout;
     }
 
     public LoginPage open() {
         ui.open(baseUrl + "/index.htm");
-        ui.waitVisible(USERNAME);
+        SiteGuard.awaitPage(ui, timeout, USERNAME, "ParaBank home page");
         return this;
     }
 

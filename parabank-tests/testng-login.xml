@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<!-- Login + Selenium 4 features only (needs registered customers in Excel): mvn -pl parabank-tests test -DsuiteXmlFile=testng-login.xml -->
+<suite name="ParaBank login" verbose="1">
+    <test name="Login and Selenium 4 features">
+        <classes>
+            <class name="io.github.thegoyalyogesh.qa.parabank.runners.LoginRunner"/>
+        </classes>
+    </test>
+</suite>

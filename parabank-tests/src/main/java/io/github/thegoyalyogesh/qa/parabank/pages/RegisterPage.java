@@ -40,7 +40,7 @@ public final class RegisterPage {
 
     public RegisterPage open() {
         ui.open(baseUrl + "/register.htm");
-        ui.waitVisible(FIRST_NAME);
+        SiteGuard.awaitPage(ui, timeout, FIRST_NAME, "Register page");
         return this;
     }
 
