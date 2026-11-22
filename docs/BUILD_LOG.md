@@ -162,3 +162,12 @@ with 36 default tests passing (Rest Assured 6 / Groovy 5 loads fine on JDK 27).
 - Red: `package ...parabank.data does not exist`. Green: unit suite 11/11.
 - `CreateTestDataWorkbook` tool generated `testdata/ParaBankData.xlsx` (sheets Users: 10 customers U01–U10 with blank
   credentials; LoginNegative: N01–N07).
+
+### Task 7 — REST client, page objects, registration service
+- `ParaBankApi`: `login(u, p)` → customer id or empty (the API rejects bad credentials, unlike the UI);
+  `accountIds(customerId)`.
+- Pages: `LoginPage` (outcome LOGGED_IN / ERROR_SHOWN / NO_PARABANK_RESPONSE), `RegisterPage` (Last Name filled with the
+  Selenium 4 relative locator and self-checked), `AccountsOverviewPage`, `FooterComponent`.
+- `RegistrationService`: API check for existing credentials → generate if blank → UI register → retry once with a new
+  name if taken → customer id and first account via API.
+- Compiles; exercised live in Task 8.
