@@ -5,12 +5,19 @@ import io.github.thegoyalyogesh.qa.parabank.model.LoginCase;
 import io.github.thegoyalyogesh.qa.parabank.model.ParaBankUser;
 import io.github.thegoyalyogesh.qa.parabank.model.RegistrationResult;
 import io.github.thegoyalyogesh.qa.parabank.model.RegistrationStatus;
+import io.github.thegoyalyogesh.qa.parabank.model.TransferCase;
+import io.github.thegoyalyogesh.qa.parabank.model.TransferType;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -20,6 +27,7 @@ public final class TestDataRepository {
 
     public static final String USERS = "Users";
     public static final String LOGIN_NEGATIVE = "LoginNegative";
+    public static final String TRANSFERS = "Transfers";
 
     /** {@code {U01}} in a cell means "the username of user U01". */
     private static final Pattern USER_REFERENCE = Pattern.compile("\\{(U\\d+)}");
@@ -28,6 +36,28 @@ public final class TestDataRepository {
 
     public TestDataRepository(Path file) {
         this.file = file;
+    }
+
+    /**
+     * Repository on a working copy of the template. The template (tracked in git) is never written to.
+     * First use copies it; an existing copy from an older version gets any sheet it is missing, and keeps its data.
+     */
+    public static TestDataRepository fromTemplate(Path workingFile, Path template) {
+        try {
+            if (Files.notExists(workingFile)) {
+                Files.createDirectories(workingFile.toAbsolutePath().getParent());
+                Files.copy(template, workingFile);
+            } else {
+                List<String> present = ExcelUtil.sheetNames(workingFile);
+                ExcelUtil.sheetNames(template).stream()
+                        .filter(sheet -> !present.contains(sheet))
+                        .forEach(sheet -> ExcelUtil.writeSheet(workingFile, sheet,
+                                ExcelUtil.readHeaders(template, sheet), ExcelUtil.readSheet(template, sheet)));
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot create " + workingFile + " from " + template, e);
+        }
+        return new TestDataRepository(workingFile);
     }
 
     public Path file() {
@@ -106,6 +136,38 @@ public final class TestDataRepository {
         values.put("ExecutedAt", now());
         values.put("Browser", browser);
         ExcelUtil.updateRow(file, LOGIN_NEGATIVE, "CaseId", caseId, values);
+    }
+
+    public List<TransferCase> transferCases(TransferType type) {
+        return ExcelUtil.readSheet(file, TRANSFERS).stream()
+                .map(TestDataRepository::toTransferCase)
+                .filter(transfer -> transfer.type() == type)
+                .toList();
+    }
+
+    public TransferCase transferCase(String transferId) {
+        return ExcelUtil.readSheet(file, TRANSFERS).stream()
+                .filter(row -> transferId.equals(row.get("TransferId")))
+                .map(TestDataRepository::toTransferCase)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "No transfer '" + transferId + "' in sheet " + TRANSFERS + " of " + file.toAbsolutePath()));
+    }
+
+    private static TransferCase toTransferCase(Map<String, String> row) {
+        return new TransferCase(
+                row.get("TransferId"),
+                TransferType.valueOf(row.get("Type").trim().toUpperCase(Locale.ROOT)),
+                row.getOrDefault("FromUser", "").trim(),
+                row.getOrDefault("ToUser", "").trim(),
+                new BigDecimal(row.get("Amount").trim()),
+                row.getOrDefault("Description", ""));
+    }
+
+    public void recordTransfer(String transferId, Map<String, String> values) {
+        Map<String, String> all = new LinkedHashMap<>(values);
+        all.put("ExecutedAt", now());
+        ExcelUtil.updateRow(file, TRANSFERS, "TransferId", transferId, all);
     }
 
     private static String shorten(String text) {

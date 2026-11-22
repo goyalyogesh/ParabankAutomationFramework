@@ -243,3 +243,14 @@ Records `Account`, `Transaction`, `TransferCase`, `TransferInstruction` (money =
 `TransferLedger.expectedNetChange` (Streams `flatMap` + `groupingBy(TreeMap)` + `reducing(BigDecimal::add)`).
 Red: `cannot find symbol: class TransferInstruction`. Green: unit suite 14/14 (the ledger test also checks that all
 net changes add up to 0 — money is moved, never created).
+
+### Task 4 — Transfers sheet, template workbook, API money calls
+- `testdata/ParaBankData.xlsx` → renamed **`ParaBankData-template.xlsx`** (tracked, never written). Tests use a
+  git-ignored working copy `testdata/ParaBankData.xlsx`, created from the template on first run
+  (`TestDataRepository.fromTemplate`). An older working copy gets new sheets added and keeps its credentials.
+  Why: before this, every test run modified a tracked file, and resetting it threw away the registered credentials.
+- `CreateTestDataWorkbook` now only adds missing sheets (output: "Keeping existing sheet Users", … `[Users, LoginNegative, Transfers]`).
+- Transfers rows: T01–T03 OWN (U01–U03), B01 U04→U05, B02 U06→U07 BILLPAY, C01–C03 CHAIN U08→U09→U10→U08.
+- `ParaBankApi`: `accounts`, `account`, `balance`, `transactions`, `transfer`; JSON numbers parsed as `BigDecimal`.
+- `TestContext.registeredUser(id)` shared by login and transfer steps; browser hook skips `@api` scenarios.
+- Unit suite 17/17.

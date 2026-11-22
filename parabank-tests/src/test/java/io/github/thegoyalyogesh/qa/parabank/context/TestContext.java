@@ -4,6 +4,7 @@ import io.github.thegoyalyogesh.qa.core.ui.UiDriver;
 import io.github.thegoyalyogesh.qa.parabank.api.ParaBankApi;
 import io.github.thegoyalyogesh.qa.parabank.config.ParaBankConfig;
 import io.github.thegoyalyogesh.qa.parabank.data.TestDataRepository;
+import io.github.thegoyalyogesh.qa.parabank.data.UserRegistry;
 import io.github.thegoyalyogesh.qa.parabank.model.LoginCase;
 import io.github.thegoyalyogesh.qa.parabank.model.ParaBankUser;
 import io.github.thegoyalyogesh.qa.parabank.pages.AccountsOverviewPage;
@@ -18,7 +19,8 @@ import io.github.thegoyalyogesh.qa.parabank.pages.RegisterPage;
 public class TestContext {
 
     private static final ParaBankConfig CONFIG = ParaBankConfig.get();
-    private static final TestDataRepository REPOSITORY = new TestDataRepository(CONFIG.testDataFile());
+    private static final TestDataRepository REPOSITORY =
+            TestDataRepository.fromTemplate(CONFIG.testDataFile(), CONFIG.testDataTemplate());
     private static final ParaBankApi API = new ParaBankApi(CONFIG.apiUrl());
 
     private UiDriver ui;
@@ -69,6 +71,15 @@ public class TestContext {
 
     public FooterComponent footer() {
         return new FooterComponent(ui());
+    }
+
+    /** Customer from this run's registry, or from Excel when a suite runs on its own; must be registered. */
+    public ParaBankUser registeredUser(String userId) {
+        ParaBankUser user = UserRegistry.find(userId).orElseGet(() -> REPOSITORY.user(userId));
+        if (!user.isRegistered()) {
+            throw new IllegalStateException("Customer " + userId + " must be registered first (run the registration suite)");
+        }
+        return user;
     }
 
     public ParaBankUser currentUser() {

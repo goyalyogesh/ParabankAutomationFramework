@@ -25,7 +25,7 @@ public class Hooks {
         this.ctx = ctx;
     }
 
-    @Before(order = 0)
+    @Before(value = "not @api", order = 0)
     public void startBrowser(Scenario scenario) {
         ParaBankConfig config = ctx.config();
         DriverManager.start(config.browser(), config.headless());

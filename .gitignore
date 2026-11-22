@@ -18,3 +18,6 @@ rerun/
 # Never commit secrets
 settings.xml
 .env
+
+# Working copy of the test-data workbook (created from the template, holds generated credentials and results)
+testdata/ParaBankData.xlsx

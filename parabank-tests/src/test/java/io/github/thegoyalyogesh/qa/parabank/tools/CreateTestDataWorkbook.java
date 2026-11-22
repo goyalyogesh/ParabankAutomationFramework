@@ -12,12 +12,12 @@ import java.util.Map;
 import java.util.stream.IntStream;
 
 /**
- * Creates testdata/ParaBankData.xlsx with 10 customers (credentials left blank so they get generated)
+ * Creates (or adds missing sheets to) testdata/ParaBankData-template.xlsx: 10 customers (credentials left blank so they get generated)
  * and the negative login cases. Run from the repository root:
  * <pre>
  * mvn -q -pl parabank-tests test-compile org.codehaus.mojo:exec-maven-plugin:3.5.0:java \
  *   -Dexec.mainClass=io.github.thegoyalyogesh.qa.parabank.tools.CreateTestDataWorkbook \
- *   -Dexec.classpathScope=test -Dexec.args=testdata/ParaBankData.xlsx [-Doverwrite=true]
+ *   -Dexec.classpathScope=test -Dexec.args=testdata/ParaBankData-template.xlsx [-Doverwrite=true]
  * </pre>
  */
 public final class CreateTestDataWorkbook {
@@ -28,6 +28,10 @@ public final class CreateTestDataWorkbook {
 
     static final List<String> NEGATIVE_HEADERS = List.of("CaseId", "Description", "Username", "Password",
             "ExpectedError", "Result", "ActualOutcome", "ExecutedAt", "Browser");
+
+    static final List<String> TRANSFER_HEADERS = List.of("TransferId", "Type", "FromUser", "ToUser", "Amount",
+            "Description", "Result", "FromAccount", "ToAccount", "FromBalanceBefore", "FromBalanceAfter",
+            "ToBalanceBefore", "ToBalanceAfter", "Confirmation", "ExecutedAt", "Browser");
 
     private static final String[][] PEOPLE = {
             {"Aarav", "Sharma", "12 Park Ave", "Austin", "TX", "73301"},
@@ -48,17 +52,49 @@ public final class CreateTestDataWorkbook {
     }
 
     public static void main(String[] args) throws IOException {
-        Path file = Path.of(args.length > 0 ? args[0] : "testdata/ParaBankData.xlsx");
-        if (Files.exists(file)) {
-            if (!Boolean.getBoolean("overwrite")) {
-                System.out.println("Workbook already exists (use -Doverwrite=true to replace): " + file.toAbsolutePath());
-                return;
-            }
+        Path file = Path.of(args.length > 0 ? args[0] : "testdata/ParaBankData-template.xlsx");
+        if (Files.exists(file) && Boolean.getBoolean("overwrite")) {
             Files.delete(file);
         }
-        ExcelUtil.writeSheet(file, TestDataRepository.USERS, USER_HEADERS, users());
-        ExcelUtil.writeSheet(file, TestDataRepository.LOGIN_NEGATIVE, NEGATIVE_HEADERS, negativeCases());
-        System.out.println("Created " + file.toAbsolutePath());
+        List<String> present = Files.exists(file) ? ExcelUtil.sheetNames(file) : List.of();
+        writeIfMissing(file, present, TestDataRepository.USERS, USER_HEADERS, users());
+        writeIfMissing(file, present, TestDataRepository.LOGIN_NEGATIVE, NEGATIVE_HEADERS, negativeCases());
+        writeIfMissing(file, present, TestDataRepository.TRANSFERS, TRANSFER_HEADERS, transfers());
+        System.out.println("Workbook ready: " + file.toAbsolutePath() + " " + ExcelUtil.sheetNames(file));
+    }
+
+    private static void writeIfMissing(Path file, List<String> present, String sheet, List<String> headers,
+                                       List<Map<String, String>> rows) {
+        if (present.contains(sheet)) {
+            System.out.println("Keeping existing sheet " + sheet);
+        } else {
+            ExcelUtil.writeSheet(file, sheet, headers, rows);
+        }
+    }
+
+    /** Each scenario uses its own customers, so parallel threads never touch the same account. */
+    static List<Map<String, String>> transfers() {
+        return List.of(
+                transfer("T01", "OWN", "U01", "", "25", "Move money into a new savings account"),
+                transfer("T02", "OWN", "U02", "", "40.50", "Move money into a new savings account"),
+                transfer("T03", "OWN", "U03", "", "10", "Move money into a new savings account"),
+                transfer("B01", "BILLPAY", "U04", "U05", "30", "Pay another customer through Bill Pay"),
+                transfer("B02", "BILLPAY", "U06", "U07", "12.75", "Pay another customer through Bill Pay"),
+                transfer("C01", "CHAIN", "U08", "U09", "20", "API chain step 1"),
+                transfer("C02", "CHAIN", "U09", "U10", "15", "API chain step 2"),
+                transfer("C03", "CHAIN", "U10", "U08", "5", "API chain step 3"));
+    }
+
+    private static Map<String, String> transfer(String id, String type, String from, String to, String amount,
+                                                String description) {
+        Map<String, String> row = new LinkedHashMap<>();
+        row.put("TransferId", id);
+        row.put("Type", type);
+        row.put("FromUser", from);
+        row.put("ToUser", to);
+        row.put("Amount", amount);
+        row.put("Description", description);
+        return row;
     }
 
     static List<Map<String, String>> users() {

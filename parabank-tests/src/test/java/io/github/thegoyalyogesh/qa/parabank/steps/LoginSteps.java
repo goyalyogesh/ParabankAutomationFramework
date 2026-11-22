@@ -6,7 +6,6 @@ import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import io.github.thegoyalyogesh.qa.parabank.context.TestContext;
-import io.github.thegoyalyogesh.qa.parabank.data.UserRegistry;
 import io.github.thegoyalyogesh.qa.parabank.model.LoginCase;
 import io.github.thegoyalyogesh.qa.parabank.model.ParaBankUser;
 import io.github.thegoyalyogesh.qa.parabank.pages.LoginPage;
@@ -29,11 +28,7 @@ public class LoginSteps {
 
     @Given("registered customer {string} from the Users sheet")
     public void registeredCustomer(String userId) {
-        ParaBankUser user = UserRegistry.find(userId).orElseGet(() -> ctx.repository().user(userId));
-        assertThat(user.isRegistered())
-                .as("Customer %s must be registered first (run the registration suite)", userId)
-                .isTrue();
-        ctx.setCurrentUser(user);
+        ctx.setCurrentUser(ctx.registeredUser(userId));
     }
 
     @When("the customer logs in")

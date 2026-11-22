@@ -45,6 +45,10 @@ public final class ParaBankConfig {
         return Path.of(config.get("testdata.file"));
     }
 
+    public Path testDataTemplate() {
+        return Path.of(config.get("testdata.template"));
+    }
+
     public String usernamePrefix() {
         return config.get("username.prefix", "qa");
     }
